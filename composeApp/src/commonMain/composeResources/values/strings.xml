@@ -1,0 +1,20 @@
+<resources>
+    <string name="app_name">SmartStep</string>
+    <string name="enter_new_title">Enter new title</string>
+    <string name="edit_uppercase">EDIT</string>
+    <string name="title">Title</string>
+    <string name="cancel">Cancel</string>
+    <string name="save">Save</string>
+    <string name="description">Description</string>
+    <string name="total_duration">Total duration</string>
+
+    <string name="error_disk_full">Failed to save the item because your disk is full.</string>
+    <string name="error_request_timeout">The request timed out</string>
+    <string name="error_too_many_requests">You\'ve hit your API rate limit.</string>
+    <string name="error_no_internet">Please check your internet connection, couldn\'t reach the server</string>
+    <string name="error_payload_too_large">The file you\'re trying to upload is too large</string>
+    <string name="error_server_error">Oops, something went wrong. Please try again.</string>
+    <string name="error_serialization">Oops, couldn\'t parse data</string>
+    <string name="error_unknown">Oops, an unknown error occurred.</string>
+    <string name="error_email_exists">A user with that email already exists.</string>
+</resources>

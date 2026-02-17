@@ -9,6 +9,7 @@ import smartstep.composeapp.generated.resources.arrow_right
 import smartstep.composeapp.generated.resources.arrow_up
 import smartstep.composeapp.generated.resources.menu_burger_square
 import smartstep.composeapp.generated.resources.pen_edit
+import smartstep.composeapp.generated.resources.pin_location_direction
 import smartstep.composeapp.generated.resources.power__turn_on
 import smartstep.composeapp.generated.resources.refresh
 import smartstep.composeapp.generated.resources.running
@@ -59,3 +60,7 @@ val Icon_Sneakers: ImageVector
 val Icon_X: ImageVector
     @Composable
     get() = vectorResource(Res.drawable.x)
+
+val Icon_PinLocation: ImageVector
+    @Composable
+    get() = vectorResource(Res.drawable.pin_location_direction)

@@ -8,7 +8,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 
 private val lightScheme = lightColorScheme(
-    onSecondaryContainer = OnSecondaryContainer,
+    background = BackgroundSecondary,
 )
 
 val ColorScheme.buttonPrimary: Color

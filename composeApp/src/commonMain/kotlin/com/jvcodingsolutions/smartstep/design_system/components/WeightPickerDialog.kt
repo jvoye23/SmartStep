@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -36,7 +37,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.jvcodingsolutions.smartstep.core.domain.Weight
 import com.jvcodingsolutions.smartstep.core.domain.WeightUnit
+import com.jvcodingsolutions.smartstep.core.presentation.util.DeviceConfiguration
 import com.jvcodingsolutions.smartstep.design_system.theme.SmartStepTheme
 import com.jvcodingsolutions.smartstep.design_system.theme.backgroundSecondary
 import com.jvcodingsolutions.smartstep.design_system.theme.backgroundTertiary
@@ -55,18 +59,7 @@ import smartstep.composeapp.generated.resources.weight
 import kotlin.math.abs
 
 
-data class Weight(
-    val kg: Int? = null,
-    val lbs: Int? = null
-) {
-    fun toLbs(): Int {
-        return kg?.times(2.20462.toInt()) ?: 999
-    }
 
-    fun toKg(): Int {
-        return lbs?.div(2.20462)?.toInt() ?: 999
-    }
-}
 
 @Composable
 fun WeightPickerDialog(
@@ -78,10 +71,26 @@ fun WeightPickerDialog(
     var selectedKg by remember { mutableStateOf(initialWeight.kg ?: 65) }
     var selectedLbs by remember { mutableStateOf(initialWeight.lbs ?: 143) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = true
+        ),
+        onDismissRequest = {} // the dialog shall not dismiss when user taps outside the dialog
+    ) {
+        val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+        val deviceConfiguration = DeviceConfiguration.fromWindowSizeClass(windowSizeClass)
+
+        val deviceWidthFraction: Float = when(deviceConfiguration) {
+            DeviceConfiguration.TABLET_PORTRAIT,
+            DeviceConfiguration.TABLET_LANDSCAPE,
+            DeviceConfiguration.DESKTOP -> 0.6f
+            else -> { 1f }
+        }
         Surface(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth(fraction = deviceWidthFraction),
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.backgroundSecondary
         ) {

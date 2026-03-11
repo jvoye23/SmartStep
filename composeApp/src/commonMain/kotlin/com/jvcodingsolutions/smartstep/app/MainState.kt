@@ -1,5 +1,8 @@
 package com.jvcodingsolutions.smartstep.app
 
+import com.jvcodingsolutions.smartstep.core.domain.model.ProfileInfo
+
 data class MainState(
-    val isLoggedIn: Boolean = false,
+    val isProfileSet: Boolean = false,
+    val isCheckingProfile: Boolean = true,
 )

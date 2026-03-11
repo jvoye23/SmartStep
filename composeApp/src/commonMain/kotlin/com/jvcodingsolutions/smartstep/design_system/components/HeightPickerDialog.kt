@@ -21,6 +21,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
@@ -36,7 +37,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.jvcodingsolutions.smartstep.core.domain.Height
 import com.jvcodingsolutions.smartstep.core.domain.HeightUnit
+import com.jvcodingsolutions.smartstep.core.presentation.util.DeviceConfiguration
 import com.jvcodingsolutions.smartstep.design_system.theme.SmartStepTheme
 import com.jvcodingsolutions.smartstep.design_system.theme.backgroundSecondary
 import com.jvcodingsolutions.smartstep.design_system.theme.backgroundTertiary
@@ -54,23 +58,6 @@ import smartstep.composeapp.generated.resources.ok
 import smartstep.composeapp.generated.resources.used_to_calculate_distance
 import kotlin.math.abs
 
-
-data class Height(
-    val cm: Int? = null,
-    val feet: Int? = null,
-    val inches: Int? = null
-) {
-    fun toCm(): Int {
-        return cm ?: ((feet ?: 0) * 30.48 + (inches ?: 0) * 2.54).toInt()
-    }
-
-    fun toFeetInches(): Pair<Int, Int> {
-        val totalCm = cm ?: ((feet ?: 0) * 30.48 + (inches ?: 0) * 2.54).toInt()
-        val totalInches = (totalCm / 2.54).toInt()
-        return Pair(totalInches / 12, totalInches % 12)
-    }
-}
-
 @Composable
 fun HeightPickerDialog(
     initialHeight: Height = Height(cm = 175),
@@ -86,10 +73,27 @@ fun HeightPickerDialog(
         mutableStateOf(initialHeight.inches ?: initialHeight.toFeetInches().second)
     }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+            usePlatformDefaultWidth = true
+        ),
+        onDismissRequest = {} // the dialog shall not dismiss when user taps outside the dialog
+    ) {
+        val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+        val deviceConfiguration = DeviceConfiguration.fromWindowSizeClass(windowSizeClass)
+
+        val deviceWidthFraction: Float = when(deviceConfiguration) {
+            DeviceConfiguration.TABLET_PORTRAIT,
+            DeviceConfiguration.TABLET_LANDSCAPE,
+            DeviceConfiguration.DESKTOP -> 0.6f
+            else -> { 1f }
+        }
+
         Surface(
             modifier = Modifier
-                .fillMaxWidth(),
+                .fillMaxWidth(fraction = deviceWidthFraction),
             shape = RoundedCornerShape(28.dp),
             color = MaterialTheme.colorScheme.backgroundSecondary
         ) {
@@ -358,7 +362,7 @@ private fun HeightPickerDialog(){
     SmartStepTheme {
         HeightPickerDialog(
             initialHeight = Height(175),
-            onDismiss = {  },
+            onDismiss = {},
             onConfirm = {}
         )
     }

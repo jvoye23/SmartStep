@@ -1,6 +1,5 @@
 package com.jvcodingsolutions.smartstep.design_system.components
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -23,8 +22,6 @@ import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
-import androidx.compose.material3.MenuItemColors
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,16 +31,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.drawscope.clipRect
-import androidx.compose.ui.input.key.type
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.jvcodingsolutions.smartstep.core.domain.model.Gender
 import com.jvcodingsolutions.smartstep.design_system.theme.Icon_ArrowDown
 import com.jvcodingsolutions.smartstep.design_system.theme.Icon_Selected
 import com.jvcodingsolutions.smartstep.design_system.theme.SmartStepTheme
@@ -60,36 +52,31 @@ import com.jvcodingsolutions.smartstep.design_system.theme.textSecondary
 @Composable
 fun SmartStepDropDown(
     label: String,
-    options: List<String>,
+    options: List<String>? = null,
+    expanded: Boolean = false,
+    onExpandedChange: (Boolean) -> Unit = {},
     selectedOption: String,
-    onOptionSelected: (String) -> Unit,
-    modifier: Modifier = Modifier
+    onOptionSelected: (Gender) -> Unit,
+    modifier: Modifier = Modifier,
+    containerColor: Color
 ) {
-    var expanded by remember { mutableStateOf(false) }
-
-    // Colors extracted from your design
-    val borderColor = Color(0xFFE0E0E0)
-    val labelColor = Color(0xFF757575)
-    val textColor = Color(0xFF1D1D1D)
-    val checkmarkColor = Color(0xFF3F4DB8)
-    val selectedBackgroundColor = Color(0xFFF4F5F9)
 
     ExposedDropdownMenuBox(
         expanded = expanded,
-        onExpandedChange = { expanded = it },
+        onExpandedChange = { !expanded },
         modifier = modifier
     ) {
         Row(
             modifier = Modifier
-                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true) // Critical: Tells the popup where to attach
+                .menuAnchor(type = ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true)
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(10.dp))
                 .border(
                     width = 1.dp,
                     color = MaterialTheme.colorScheme.strokeMain,
                     shape = RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.backgroundSecondary)
-                .clickable { expanded = true }
+                .background(containerColor)
+                .clickable { onExpandedChange(expanded) }
                 .padding(horizontal = 16.dp, vertical = 10.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
@@ -117,7 +104,7 @@ fun SmartStepDropDown(
 
         DropdownMenu(
             expanded = expanded,
-            onDismissRequest = { expanded = false },
+            onDismissRequest = { /*onExpandedChange(expanded) */}, // the dialog shall not dismiss when tapping outside
             modifier = Modifier
                 .exposedDropdownSize() // Critical: Forces menu to exactly match the anchor's width
                 .background(MaterialTheme.colorScheme.backgroundWhite),
@@ -126,8 +113,14 @@ fun SmartStepDropDown(
             offset = DpOffset(0.dp, 8.dp),
 
         ) {
-            options.forEach { option ->
-                val isSelected = option == selectedOption
+            Gender.entries.forEach { gender ->
+                val isSelected = gender.label == selectedOption
+
+
+
+                /*}
+                options?.forEach { option ->
+                    val isSelected = option == selectedOption*/
 
                 DropdownMenuItem(
                     modifier = Modifier
@@ -137,8 +130,7 @@ fun SmartStepDropDown(
                             color = if (isSelected) MaterialTheme.colorScheme.backgroundSecondary
                             else MaterialTheme.colorScheme.backgroundWhite,
                             shape = RoundedCornerShape(10.dp)
-                        )
-                        ,
+                        ),
                     contentPadding = PaddingValues(
                         start = 8.dp, top = 8.dp, end = 4.dp, bottom = 8.dp
                     ),
@@ -149,7 +141,7 @@ fun SmartStepDropDown(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = option,
+                                text = gender.label,
                                 color = MaterialTheme.colorScheme.textPrimary,
                                 style = MaterialTheme.typography.bodyLargeRegular
                             )
@@ -157,8 +149,8 @@ fun SmartStepDropDown(
                         }
                     },
                     onClick = {
-                        onOptionSelected(option)
-                        expanded = false
+                        onOptionSelected(gender)
+                        onExpandedChange(expanded)
                     },
                     trailingIcon = {
                         if (isSelected) {
@@ -181,7 +173,7 @@ fun SmartStepDropDown(
 @Preview(showBackground = true)
 @Composable
 private fun StepCounterCardPreview() {
-    var selectedGender by remember { mutableStateOf("Female") }
+    var selectedGender by remember { mutableStateOf(Gender.FEMALE) }
     val genderOptions = listOf("Female", "Male")
     SmartStepTheme {
         Box(
@@ -190,7 +182,7 @@ private fun StepCounterCardPreview() {
                 .padding(16.dp),
             contentAlignment = Alignment.Center
         ) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(
@@ -203,14 +195,23 @@ private fun StepCounterCardPreview() {
                         shape = RoundedCornerShape(14.dp)
                     )
 
-                    .padding(16.dp)
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
 
             ) {
                 SmartStepDropDown(
                     label = "Gender",
                     options = genderOptions,
-                    selectedOption = selectedGender,
-                    onOptionSelected = { selectedGender = it }
+                    selectedOption = selectedGender.label,
+                    onOptionSelected = { selectedGender = it },
+                    containerColor = MaterialTheme.colorScheme.backgroundSecondary
+                )
+                SmartStepDropDown(
+                    label = "Gender",
+                    options = genderOptions,
+                    selectedOption = selectedGender.label,
+                    onOptionSelected = { selectedGender = it },
+                    containerColor = MaterialTheme.colorScheme.backgroundSecondary
                 )
             }
         }

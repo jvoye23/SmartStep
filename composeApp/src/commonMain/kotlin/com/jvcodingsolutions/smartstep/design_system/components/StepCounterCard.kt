@@ -17,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -24,7 +25,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.jvcodingsolutions.smartstep.core.presentation.util.DeviceConfiguration
 import com.jvcodingsolutions.smartstep.design_system.theme.Icon_Sneakers
 import com.jvcodingsolutions.smartstep.design_system.theme.SmartStepTheme
 import com.jvcodingsolutions.smartstep.design_system.theme.backgroundWhite
@@ -35,9 +38,9 @@ import com.jvcodingsolutions.smartstep.design_system.util.formattedSteps
 
 @Composable
 fun StepCounterCard(
+    modifier: Modifier = Modifier,
     currentSteps: Int,
     dailyGoalSteps: Int,
-    modifier: Modifier = Modifier,
 ) {
     val currentFormattedSteps = remember(currentSteps) {
         formattedSteps(currentSteps)
@@ -49,11 +52,22 @@ fun StepCounterCard(
         } else 0f
     }
 
+    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+    val deviceConfiguration = DeviceConfiguration.fromWindowSizeClass(windowSizeClass)
+
+    val cardWidthFraction: Float = when(deviceConfiguration) {
+        DeviceConfiguration.MOBILE_PORTRAIT -> 1f
+        DeviceConfiguration.MOBILE_LANDSCAPE -> 0.5f
+        DeviceConfiguration.TABLET_PORTRAIT -> 0.5f
+        DeviceConfiguration.TABLET_LANDSCAPE,
+        DeviceConfiguration.DESKTOP -> 0.3f
+    }
+
     Card(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.buttonPrimary),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 12.dp),
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier.fillMaxWidth(fraction = cardWidthFraction)
     ) {
         Column(
             modifier = Modifier.padding(16.dp)

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jvcodingsolutions.smartstep.core.domain.ProfileStorage
 import com.jvcodingsolutions.smartstep.core.domain.repository.TrackRepository
+import com.jvcodingsolutions.smartstep.features.step_counter.domain.StepTracker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.onStart
@@ -16,7 +17,8 @@ import kotlin.time.Clock
 
 class StepCounterViewModel(
     private val trackRepository: TrackRepository,
-    private val profileStorage: ProfileStorage
+    private val profileStorage: ProfileStorage,
+    private val stepTracker: StepTracker
 ): ViewModel() {
 
     private val _state = MutableStateFlow(StepCounterState())
@@ -29,6 +31,7 @@ class StepCounterViewModel(
                 loadInitialData()
                 hasLoadedInitialData = true
             }
+            stepTracker.startTracking()
         }
         .stateIn(
             viewModelScope,
@@ -40,20 +43,55 @@ class StepCounterViewModel(
         viewModelScope.launch {
             val profileInfo = profileStorage.get()
             if (profileInfo != null) {
-                // Update state with profile ID
-                _state.update { it.copy(profileId = profileInfo.id) }
+                val profileId = profileInfo.id
+                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
                 
-                // Fetch track data reactively after profile info is retrieved
-                trackRepository.getCurrentStepGoalFlow(
-                    profileId = profileInfo.id,
-                    date = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                ).collect { stepGoal ->
-                    if (stepGoal != null) {
-                        _state.update { it.copy(dailyGoalSteps = stepGoal) }
+                _state.update { it.copy(profileId = profileId) }
+
+                // Load initial current steps for today
+                val initialSteps = trackRepository.getCurrentSteps(profileId, today) ?: 0
+                _state.update { it.copy(currentSteps = initialSteps) }
+
+                // Fetch step goal reactively
+                launch {
+                    trackRepository.getCurrentStepGoalFlow(profileId, today).collect { stepGoal ->
+                        if (stepGoal != null) {
+                            _state.update { it.copy(dailyGoalSteps = stepGoal) }
+                        }
+                    }
+                }
+
+                // Collect step deltas and debounce database saves
+                launch {
+                    var unwrittenSteps = 0
+                    stepTracker.stepDeltas.collect { delta ->
+                        unwrittenSteps += delta
+                        val newTotal = _state.value.currentSteps + delta
+                        
+                        _state.update { it.copy(currentSteps = newTotal) }
+
+                        // Write to DB periodically (e.g. every 10 steps)
+                        if (unwrittenSteps >= 10) {
+                            trackRepository.saveCurrentSteps(profileId, today, newTotal)
+                            unwrittenSteps = 0
+                        }
                     }
                 }
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        // Ensure final steps are saved before view model is destroyed
+        viewModelScope.launch {
+            val currentState = _state.value
+            if (currentState.profileId.isNotEmpty()) {
+                val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+                trackRepository.saveCurrentSteps(currentState.profileId, today, currentState.currentSteps)
+            }
+        }
+        stepTracker.stopTracking()
     }
 
     fun onAction(action: StepCounterAction) {
@@ -63,6 +101,7 @@ class StepCounterViewModel(
             StepCounterAction.ToggleBackgroundAccessBottomSheet -> { toggleBackgroundAccessBottomSheet() }
             StepCounterAction.ToggleEnableAccessManuallyBottomSheet -> { toggleEnableAccessManuallyBottomSheet() }
             StepCounterAction.OnToggleStepGoalBottomSheet -> { toggleStepGoalBottomSheet() }
+            StepCounterAction.StartTracking -> { stepTracker.startTracking() }
             is StepCounterAction.OnSaveStepGoal -> { saveStepGoal(action.value) }
             else -> Unit
         }

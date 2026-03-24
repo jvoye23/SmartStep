@@ -82,10 +82,19 @@ fun SmartStepNavigation(
         else -> Color.Transparent
     }
 
+    // Pass an empty callback for now. The StepCounterScreenRoot handles its own permission requests,
+    // but we can trigger the OS intent here via the drawer.
     val permissionState = rememberStepPermissionState()
 
     SmartStepNavigationDrawer(
         selectedKey = Route.ProfileOnboardingRoute.ProfileSetupScreenRoute,
+        hasBackgroundPermission = permissionState.hasBackgroundPermission,
+        onFixStopCountingIssueClick = {
+            scope.launch {
+                drawerState.close()
+                permissionState.requestBackgroundExecution()
+            }
+        },
         onSelectKey = { destinationRoute ->
             scope.launch {
                 drawerState.close()

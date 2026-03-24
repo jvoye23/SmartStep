@@ -26,6 +26,7 @@ import com.jvcodingsolutions.smartstep.design_system.theme.textPrimary
 import org.jetbrains.compose.resources.stringResource
 import smartstep.composeapp.generated.resources.Res
 import smartstep.composeapp.generated.resources.exit
+import smartstep.composeapp.generated.resources.fix_the_stop_counting_issue
 import smartstep.composeapp.generated.resources.personal_settings
 import smartstep.composeapp.generated.resources.step_goal
 
@@ -34,6 +35,8 @@ fun SmartStepNavigationDrawer(
     selectedKey: NavKey,
     onSelectKey: (NavKey) -> Unit,
     drawerState: DrawerState,
+    hasBackgroundPermission: Boolean,
+    onFixStopCountingIssueClick: () -> Unit,
     onShowExitDialog: () -> Unit,
     onStepGoalClick: () -> Unit,
     onPersonalSettingsClick: () -> Unit,
@@ -50,6 +53,8 @@ fun SmartStepNavigationDrawer(
                 DrawerLayout(
                     modifier = Modifier,
                     selectedKey = selectedKey,
+                    hasBackgroundPermission = hasBackgroundPermission,
+                    onFixStopCountingIssueClick = onFixStopCountingIssueClick,
                     onSelectKey = onSelectKey,
                     onShowExitDialog = onShowExitDialog,
                     onStepGoalClick = onStepGoalClick,
@@ -68,31 +73,33 @@ fun SmartStepNavigationDrawer(
 private fun DrawerLayout(
     modifier: Modifier = Modifier,
     selectedKey: NavKey,
+    hasBackgroundPermission: Boolean,
+    onFixStopCountingIssueClick: () -> Unit,
     onSelectKey: (NavKey) -> Unit,
     onShowExitDialog: () -> Unit,
     onStepGoalClick: () -> Unit,
     onPersonalSettingsClick: () -> Unit
 ) {
 
-    /*TOP_LEVEL_DESTINATIONS.forEach { (topLevelDestination, navigationItem) ->
+    if (!hasBackgroundPermission) {
         NavigationDrawerItem(
             label = {
                 Text(
-                    text = stringResource(navigationItem.title),
+                    text = stringResource(Res.string.fix_the_stop_counting_issue),
                     style = MaterialTheme.typography.bodyLargeMedium,
-                    color = MaterialTheme.colorScheme.textPrimary
+                    color = MaterialTheme.colorScheme.buttonPrimary
                 )
             },
-            selected = topLevelDestination == selectedKey,
+            selected = false,
             onClick = {
-                onSelectKey(topLevelDestination)
+                onFixStopCountingIssueClick()
             },
             modifier = Modifier
                 .padding(12.dp),
             colors = NavigationDrawerItemDefaults.colors(
                 selectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
                 unselectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
-                selectedTextColor = MaterialTheme.colorScheme.textPrimary
+                selectedTextColor = MaterialTheme.colorScheme.buttonPrimary
             ),
             shape = RectangleShape
         )
@@ -104,7 +111,8 @@ private fun DrawerLayout(
             thickness = 1.dp,
             color = MaterialTheme.colorScheme.strokeMain
         )
-    }*/
+    }
+
     NavigationDrawerItem(
         label = {
             Text(
@@ -188,18 +196,3 @@ private fun DrawerLayout(
         shape = RectangleShape
     )
 }
-
-/*
-@Preview(showBackground = true)
-@Composable
-private fun SmartStepNavigationDrawerPreview() {
-    SmartStepTheme {
-        SmartStepNavigationDrawer(
-            selectedKey = Route.ProfileOnboardingRoute.ProfileSetupScreenRoute,
-            onSelectKey = {},
-            content = {
-                Text(text = "Hello World")
-            }
-        )
-    }
-}*/

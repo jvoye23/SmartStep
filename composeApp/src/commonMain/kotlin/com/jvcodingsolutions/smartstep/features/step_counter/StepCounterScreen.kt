@@ -14,16 +14,19 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -45,7 +48,13 @@ import com.jvcodingsolutions.smartstep.design_system.theme.strokeMain
 import com.jvcodingsolutions.smartstep.design_system.theme.textPrimary
 import com.jvcodingsolutions.smartstep.design_system.theme.textSecondary
 import com.jvcodingsolutions.smartstep.features.step_counter.components.StepGoalBottomSheet
+import com.jvcodingsolutions.smartstep.navigation.Navigator
+import com.jvcodingsolutions.smartstep.navigation.Route
+import com.jvcodingsolutions.smartstep.navigation.SmartStepNavigationDrawer
+import com.jvcodingsolutions.smartstep.navigation.TOP_LEVEL_DESTINATIONS
+import com.jvcodingsolutions.smartstep.navigation.rememberNavigationState
 import com.jvcodingsolutions.smartstep.permissions.rememberStepPermissionState
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import smartstep.composeapp.generated.resources.Res
@@ -64,7 +73,7 @@ import smartstep.composeapp.generated.resources.two_tap_physical_activity
 @Composable
 fun StepCounterScreenRoot(
     viewModel: StepCounterViewModel = koinViewModel(),
-    isStepGoalBottomSheetVisible: Boolean
+    //isStepGoalBottomSheetVisible: Boolean = false
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -72,7 +81,7 @@ fun StepCounterScreenRoot(
     var showAllowAccessSheet by remember { mutableStateOf(false) }
     var showEnableAccessManuallySheet by remember { mutableStateOf(false) }
     var showBackgroundAccessSheet by remember { mutableStateOf(false) }
-    var showStepGoalBottomSheet by remember { mutableStateOf(isStepGoalBottomSheetVisible) }
+    //var showStepGoalBottomSheet by remember { mutableStateOf(isStepGoalBottomSheetVisible) }
 
 
     val permissionState = rememberStepPermissionState(
@@ -109,9 +118,9 @@ fun StepCounterScreenRoot(
         }
     }
 
-    LaunchedEffect(showStepGoalBottomSheet) {
+    /*LaunchedEffect(showStepGoalBottomSheet) {
         viewModel.onAction(StepCounterAction.OnToggleStepGoalBottomSheet)
-    }
+    }*/
 
     val displayState = state.copy(
         isAllowAccessBottomSheetVisible = showAllowAccessSheet,
@@ -154,7 +163,7 @@ private fun StepCounterScreen(
     MobilePortraitLayout(
         onAction = onAction,
         state = state,
-        hasPermissions = hasPermissions
+        hasPermissions = hasPermissions,
     )
 }
 
@@ -162,7 +171,7 @@ private fun StepCounterScreen(
 private fun MobilePortraitLayout(
     onAction: (StepCounterAction) -> Unit,
     state: StepCounterState,
-    hasPermissions: Boolean = false
+    hasPermissions: Boolean = false,
 ) {
     Column(
         modifier = Modifier
@@ -198,7 +207,7 @@ private fun MobilePortraitLayout(
             )
         }
     }
-    if(state.isStepGoalBottomSheetVisible) {
+    /*if(state.isStepGoalBottomSheetVisible) {
         StepGoalBottomSheet(
             modifier = Modifier.fillMaxWidth(),
             onSave = { value ->
@@ -208,7 +217,7 @@ private fun MobilePortraitLayout(
                 onAction(StepCounterAction.OnToggleStepGoalBottomSheet)
             }
         )
-    }
+    }*/
 }
 
 @Composable

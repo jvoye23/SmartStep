@@ -6,6 +6,7 @@ import com.jvcodingsolutions.smartstep.core.domain.model.Gender
 
 sealed interface ProfileSetupAction {
     data object OnStartClick: ProfileSetupAction
+    data object OnSaveClick: ProfileSetupAction
     data object OnGenderDropdownClick: ProfileSetupAction
     data object OnToggleHeightDropdownClick: ProfileSetupAction
     data object OnToggleWeightDropdownClick: ProfileSetupAction
@@ -14,5 +15,5 @@ sealed interface ProfileSetupAction {
     data class OnGenderOptionSelected(val option: Gender): ProfileSetupAction
     data class OnConfirmSelectedHeight(val height: Height): ProfileSetupAction
     data class OnConfirmSelectedWeight(val weight: Weight): ProfileSetupAction
-
+    data class OnChangeUnitSystem(val isMetricSystem: Boolean): ProfileSetupAction
 }

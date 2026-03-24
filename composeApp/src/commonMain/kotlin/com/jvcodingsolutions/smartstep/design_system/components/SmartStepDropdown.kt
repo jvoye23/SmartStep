@@ -109,18 +109,10 @@ fun SmartStepDropDown(
                 .exposedDropdownSize() // Critical: Forces menu to exactly match the anchor's width
                 .background(MaterialTheme.colorScheme.backgroundWhite),
             shape = RoundedCornerShape(8.dp),
-
-            offset = DpOffset(0.dp, 8.dp),
-
+            offset = DpOffset(0.dp, 8.dp)
         ) {
             Gender.entries.forEach { gender ->
                 val isSelected = gender.label == selectedOption
-
-
-
-                /*}
-                options?.forEach { option ->
-                    val isSelected = option == selectedOption*/
 
                 DropdownMenuItem(
                     modifier = Modifier

@@ -74,7 +74,8 @@ val serializerConfig = SavedStateConfiguration {
     serializersModule = SerializersModule {
         polymorphic(NavKey::class) {
             subclass(Route.ProfileOnboardingRoute::class, Route.ProfileOnboardingRoute.serializer())
-            subclass(Route.StepCounterRoute.PersonalSettingsRoute::class, Route.StepCounterRoute.PersonalSettingsRoute.serializer())
+            //subclass(Route.StepCounterRoute.PersonalSettingsRoute::class, Route.StepCounterRoute.PersonalSettingsRoute.serializer())
+            subclass(Route.PersonalSettingsRoute::class, Route.PersonalSettingsRoute.serializer())
             subclass(Route.StepCounterRoute.StepGoalRoute::class, Route.StepCounterRoute.StepGoalRoute.serializer())
             //subclass(Route.StepCounterRoute.ExitRoute::class, Route.StepCounterRoute.ExitRoute.serializer())
         }

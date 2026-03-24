@@ -15,9 +15,9 @@ val TOP_LEVEL_DESTINATIONS: Map<NavKey, NavigationItem> = mapOf<NavKey, Navigati
     Route.StepCounterRoute.StepGoalRoute to NavigationItem(
         title = Res.string.step_goal
     ),
-    Route.StepCounterRoute.PersonalSettingsRoute to NavigationItem(
+    /*Route.StepCounterRoute.PersonalSettingsRoute to NavigationItem(
         title = Res.string.personal_settings
-    ),
+    ),*/
 
     /*Route.StepCounterRoute.ExitRoute to NavigationItem(
         title = Res.string.exit

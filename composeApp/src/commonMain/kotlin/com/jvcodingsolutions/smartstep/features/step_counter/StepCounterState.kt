@@ -1,6 +1,7 @@
 package com.jvcodingsolutions.smartstep.features.step_counter
 
 data class StepCounterState(
+    val profileId: String = "",
     val currentSteps: Int = 0,
     val dailyGoalSteps: Int = 6000,
     val isPermissionRequested: Boolean = false,

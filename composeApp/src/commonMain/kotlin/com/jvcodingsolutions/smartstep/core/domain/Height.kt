@@ -15,3 +15,8 @@ data class Height(
         return Pair(totalInches / 12, totalInches % 12)
     }
 }
+
+fun Int.toFeetInches(): Pair<Int, Int> {
+    val totalInches = (this / 2.54).toInt()
+    return Pair(totalInches / 12, totalInches % 12)
+}

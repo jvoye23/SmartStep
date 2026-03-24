@@ -12,5 +12,5 @@ interface ProfileInfoDao {
     suspend fun upsertProfile(profileInfo: ProfileInfoEntity)
 
     @Query("SELECT * FROM profile")
-    fun getProfile(): ProfileInfoEntity?
+    suspend fun getProfile(): ProfileInfoEntity?
 }

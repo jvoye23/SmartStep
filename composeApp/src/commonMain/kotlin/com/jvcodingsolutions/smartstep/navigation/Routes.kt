@@ -13,13 +13,13 @@ sealed interface Route: NavKey {
 
     @Serializable
     data object StepCounterRoute: Route, NavKey {
-        @Serializable
-        data object PersonalSettingsRoute: Route, NavKey
 
         @Serializable
         data object StepGoalRoute: Route, NavKey
 
-     //@Serializable
-     //   data object ExitRoute: Route, NavKey
     }
+
+    @Serializable
+    data object PersonalSettingsRoute: Route, NavKey
+
 }

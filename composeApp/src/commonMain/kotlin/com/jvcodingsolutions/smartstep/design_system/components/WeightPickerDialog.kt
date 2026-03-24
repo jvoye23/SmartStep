@@ -64,10 +64,12 @@ import kotlin.math.abs
 @Composable
 fun WeightPickerDialog(
     initialWeight: Weight = Weight(kg = 65, lbs = 143),
+    initialUnit: WeightUnit = WeightUnit.KG,
     onDismiss: () -> Unit,
-    onConfirm: (Weight) -> Unit
+    onConfirm: (Weight) -> Unit,
+    isMetricSystem: (Boolean) -> Unit = {}
 ) {
-    var selectedUnit by remember { mutableStateOf(WeightUnit.KG) }
+    var selectedUnit by remember { mutableStateOf(initialUnit) }
     var selectedKg by remember { mutableStateOf(initialWeight.kg ?: 65) }
     var selectedLbs by remember { mutableStateOf(initialWeight.lbs ?: 143) }
 
@@ -135,6 +137,7 @@ fun WeightPickerDialog(
                 ) { unit ->
                     when (unit) {
                         WeightUnit.KG -> {
+                            isMetricSystem(true)
                             WeightPicker(
                                 selectedValue = selectedKg,
                                 onValueChange = { selectedKg = it },
@@ -142,6 +145,7 @@ fun WeightPickerDialog(
                             )
                         }
                         WeightUnit.LBS -> {
+                            isMetricSystem(false)
                             WeightPicker(
                                 selectedValue =  selectedLbs,
                                 onValueChange = { selectedLbs = it},

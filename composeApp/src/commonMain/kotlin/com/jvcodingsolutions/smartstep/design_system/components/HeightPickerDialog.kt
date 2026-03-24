@@ -61,10 +61,13 @@ import kotlin.math.abs
 @Composable
 fun HeightPickerDialog(
     initialHeight: Height = Height(cm = 175),
+    initialUnit: HeightUnit = HeightUnit.CM,
     onDismiss: () -> Unit,
-    onConfirm: (Height) -> Unit
+    onConfirm: (Height) -> Unit,
+    isMetricSystem: (Boolean) -> Unit = {},
+
 ) {
-    var selectedUnit by remember { mutableStateOf(HeightUnit.CM) }
+    var selectedUnit by remember { mutableStateOf(initialUnit) }
     var selectedCm by remember { mutableStateOf(initialHeight.cm ?: 175) }
     var selectedFeet by remember {
         mutableStateOf(initialHeight.feet ?: initialHeight.toFeetInches().first)
@@ -121,13 +124,6 @@ fun HeightPickerDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                /*SmartStepSegmentedButton(
-                    modifier = Modifier
-                        .padding(horizontal = 24.dp),
-                    options = listOf(HeightUnit.CM, HeightUnit.FT_IN),
-                    selectedUnit = selectedUnit,
-                    onUnitChange = { selectedUnit = it },
-                )*/
                 SmartStepSegmentedButton(
                     modifier = Modifier
                         .padding(horizontal = 24.dp),
@@ -145,12 +141,14 @@ fun HeightPickerDialog(
                 ) { unit ->
                     when (unit) {
                         HeightUnit.CM -> {
+                            isMetricSystem(true)
                             CmPicker(
                                 selectedCm = selectedCm,
                                 onCmChange = { selectedCm = it }
                             )
                         }
                         HeightUnit.FT_IN -> {
+                            isMetricSystem(false)
                             FeetInchesPicker(
                                 selectedFeet = selectedFeet,
                                 selectedInches = selectedInches,

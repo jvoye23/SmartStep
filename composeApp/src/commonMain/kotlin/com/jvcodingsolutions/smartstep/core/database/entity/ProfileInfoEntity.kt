@@ -11,6 +11,10 @@ data class ProfileInfoEntity(
     @PrimaryKey(autoGenerate = false)
     val id: String,
     val gender: Gender,
-    val weight: Int,
-    val height: Int
+    val weightInKg: Int? = null,
+    val weightInLbs: Int? = null,
+    val heightInCm: Int? = null,
+    val feet: Int? = null,
+    val inches: Int? = null,
+    val isMetricSystem: Boolean
 )

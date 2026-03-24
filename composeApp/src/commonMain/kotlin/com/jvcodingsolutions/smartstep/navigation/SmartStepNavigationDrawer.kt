@@ -26,6 +26,8 @@ import com.jvcodingsolutions.smartstep.design_system.theme.textPrimary
 import org.jetbrains.compose.resources.stringResource
 import smartstep.composeapp.generated.resources.Res
 import smartstep.composeapp.generated.resources.exit
+import smartstep.composeapp.generated.resources.personal_settings
+import smartstep.composeapp.generated.resources.step_goal
 
 @Composable
 fun SmartStepNavigationDrawer(
@@ -33,6 +35,8 @@ fun SmartStepNavigationDrawer(
     onSelectKey: (NavKey) -> Unit,
     drawerState: DrawerState,
     onShowExitDialog: () -> Unit,
+    onStepGoalClick: () -> Unit,
+    onPersonalSettingsClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
 
@@ -47,7 +51,9 @@ fun SmartStepNavigationDrawer(
                     modifier = Modifier,
                     selectedKey = selectedKey,
                     onSelectKey = onSelectKey,
-                    onShowExitDialog = onShowExitDialog
+                    onShowExitDialog = onShowExitDialog,
+                    onStepGoalClick = onStepGoalClick,
+                    onPersonalSettingsClick = onPersonalSettingsClick
                 )
             }
         },
@@ -63,10 +69,12 @@ private fun DrawerLayout(
     modifier: Modifier = Modifier,
     selectedKey: NavKey,
     onSelectKey: (NavKey) -> Unit,
-    onShowExitDialog: () -> Unit
+    onShowExitDialog: () -> Unit,
+    onStepGoalClick: () -> Unit,
+    onPersonalSettingsClick: () -> Unit
 ) {
 
-    TOP_LEVEL_DESTINATIONS.forEach { (topLevelDestination, navigationItem) ->
+    /*TOP_LEVEL_DESTINATIONS.forEach { (topLevelDestination, navigationItem) ->
         NavigationDrawerItem(
             label = {
                 Text(
@@ -96,7 +104,68 @@ private fun DrawerLayout(
             thickness = 1.dp,
             color = MaterialTheme.colorScheme.strokeMain
         )
-    }
+    }*/
+    NavigationDrawerItem(
+        label = {
+            Text(
+                text = stringResource(Res.string.step_goal),
+                style = MaterialTheme.typography.bodyLargeMedium,
+                color = MaterialTheme.colorScheme.textPrimary
+            )
+        },
+        selected = false,
+        onClick = {
+            onStepGoalClick()
+        },
+        modifier = Modifier
+            .padding(12.dp),
+        colors = NavigationDrawerItemDefaults.colors(
+            selectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
+            unselectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
+            selectedTextColor = MaterialTheme.colorScheme.textPrimary
+        ),
+        shape = RectangleShape
+    )
+
+    HorizontalDivider(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.strokeMain
+    )
+
+    NavigationDrawerItem(
+        label = {
+            Text(
+                text = stringResource(Res.string.personal_settings),
+                style = MaterialTheme.typography.bodyLargeMedium,
+                color = MaterialTheme.colorScheme.textPrimary
+            )
+        },
+        selected = false,
+        onClick = {
+            onPersonalSettingsClick()
+        },
+        modifier = Modifier
+            .padding(12.dp),
+        colors = NavigationDrawerItemDefaults.colors(
+            selectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
+            unselectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
+            selectedTextColor = MaterialTheme.colorScheme.textPrimary
+        ),
+        shape = RectangleShape
+    )
+
+    HorizontalDivider(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.strokeMain
+    )
+
+
     NavigationDrawerItem(
         label = {
             Text(

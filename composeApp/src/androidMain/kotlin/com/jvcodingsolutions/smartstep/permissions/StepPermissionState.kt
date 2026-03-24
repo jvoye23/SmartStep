@@ -32,7 +32,11 @@ actual fun rememberStepPermissionState(
 
     var hasPermission by remember {
         mutableStateOf(
-            ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            try {
+                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+            } catch (e: Exception) {
+                false
+            }
         )
     }
 
@@ -44,13 +48,17 @@ actual fun rememberStepPermissionState(
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                val isGranted = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-                if (isGranted != hasPermission) {
-                    hasPermission = isGranted
-                    if (isGranted) {
-                        isPermanentlyDenied = false
-                        onPermissionResult(true, false)
+                try {
+                    val isGranted = ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+                    if (isGranted != hasPermission) {
+                        hasPermission = isGranted
+                        if (isGranted) {
+                            isPermanentlyDenied = false
+                            onPermissionResult(true, false)
+                        }
                     }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
         }
@@ -64,7 +72,12 @@ actual fun rememberStepPermissionState(
         contract = ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         hasPermission = isGranted
-        val rationale = activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, permission) } ?: false
+        val rationale = try {
+            activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, permission) } ?: false
+        } catch (e: Exception) {
+            // If the service binding fails, assume we should show rationale or handle gracefully
+            false
+        }
         val permanentlyDenied = !isGranted && !rationale
         isPermanentlyDenied = permanentlyDenied
         onPermissionResult(isGranted, permanentlyDenied)
@@ -76,18 +89,26 @@ actual fun rememberStepPermissionState(
             override val isPermanentlyDenied: Boolean = isPermanentlyDenied
             
             override fun launchPermissionRequest() {
-                if (!hasPermission) {
-                    launcher.launch(permission)
-                } else {
-                    onPermissionResult(true, false)
+                try {
+                    if (!hasPermission) {
+                        launcher.launch(permission)
+                    } else {
+                        onPermissionResult(true, false)
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
             }
             override fun openAppSettings() {
-                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                    data = Uri.fromParts("package", context.packageName, null)
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                try {
+                    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                        data = Uri.fromParts("package", context.packageName, null)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-                context.startActivity(intent)
             }
             override fun requestBackgroundExecution() {
                 val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {

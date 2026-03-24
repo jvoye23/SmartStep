@@ -61,9 +61,21 @@ fun NavigationRoot(
             entry<Route.StepCounterRoute> {
                 SmartStepNavigation(
                     modifier = Modifier
-                        .background(MaterialTheme.colorScheme.backgroundMain)
+                        .background(MaterialTheme.colorScheme.backgroundMain),
+                    onNavigateToProfileSettings = {
+                        rootBackStack.add(Route.PersonalSettingsRoute)
+                    }
                 )
 
+            }
+            entry<Route.PersonalSettingsRoute> {
+                ProfileSetupScreenRoot(
+                    onNavigateBackClick = {
+                        rootBackStack.clear()
+                        rootBackStack.add(Route.StepCounterRoute)
+                    },
+                    isOnboarding = false
+                )
             }
         }
     )

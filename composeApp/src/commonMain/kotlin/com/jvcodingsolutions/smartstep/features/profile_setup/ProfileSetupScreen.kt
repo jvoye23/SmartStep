@@ -34,6 +34,12 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jvcodingsolutions.smartstep.core.domain.Height
+import com.jvcodingsolutions.smartstep.core.domain.HeightUnit
+import com.jvcodingsolutions.smartstep.core.domain.Weight
+import com.jvcodingsolutions.smartstep.core.domain.WeightUnit
+import com.jvcodingsolutions.smartstep.core.domain.toFeetInches
+import com.jvcodingsolutions.smartstep.core.domain.toLbs
 import com.jvcodingsolutions.smartstep.core.presentation.util.DeviceConfiguration
 import com.jvcodingsolutions.smartstep.core.presentation.util.ObserveAsEvents
 import com.jvcodingsolutions.smartstep.design_system.components.HeightPickerDialog
@@ -118,36 +124,34 @@ fun ProfileSetupScreen(
     ) {
         Scaffold(
             topBar = {
-                if(isOnboarding){
-                    CenterAlignedTopAppBar(
-                        modifier = Modifier.statusBarsPadding(),
-                        title = {
-                            Text(
-                                text = stringResource(Res.string.my_profile),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.textPrimary
-                            )
-                        },
-                        actions = {
-                            if(isOnboarding) {
-                                TextButton(
-                                    onClick = { onAction(ProfileSetupAction.OnSkipClick) },
-                                ) {
-                                    Text(
-                                        text = stringResource(Res.string.skip),
-                                        style = MaterialTheme.typography.bodyLargeMedium,
-                                        color = MaterialTheme.colorScheme.buttonPrimary
-                                    )
-                                }
+                CenterAlignedTopAppBar(
+                    modifier = Modifier.statusBarsPadding(),
+                    title = {
+                        Text(
+                            text = stringResource(Res.string.my_profile),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.textPrimary
+                        )
+                    },
+                    actions = {
+                        if(isOnboarding) {
+                            TextButton(
+                                onClick = { onAction(ProfileSetupAction.OnSkipClick) },
+                            ) {
+                                Text(
+                                    text = stringResource(Res.string.skip),
+                                    style = MaterialTheme.typography.bodyLargeMedium,
+                                    color = MaterialTheme.colorScheme.buttonPrimary
+                                )
                             }
-                        },
-                        colors = TopAppBarDefaults.topAppBarColors(
-                            containerColor = topAppBarBackgroundColor
-                        ),
-                        windowInsets = WindowInsets.statusBars
-                    )
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = topAppBarBackgroundColor
+                    ),
+                    windowInsets = WindowInsets.statusBars
+                )
 
-                }
             }
         ) { innerPadding ->
 
@@ -176,16 +180,20 @@ fun ProfileSetupScreen(
         }
         if(state.isHeightPickerVisible) {
             HeightPickerDialog(
-                initialHeight = state.selectedHeight,
+                initialHeight = Height(cm = state.selectedHeightInCm),
+                initialUnit = if(state.isMetricSystem) HeightUnit.CM else HeightUnit.FT_IN,
                 onDismiss = { onAction(ProfileSetupAction.OnToggleHeightDropdownClick) },
-                onConfirm = { onAction(ProfileSetupAction.OnConfirmSelectedHeight(it))}
-            )
+                onConfirm = { onAction(ProfileSetupAction.OnConfirmSelectedHeight(it)) },
+                isMetricSystem = { onAction(ProfileSetupAction.OnChangeUnitSystem(it)) }
+                )
         }
         if(state.isWeightPickerVisible) {
             WeightPickerDialog(
-                initialWeight = state.selectedWeight,
+                initialWeight = Weight(kg = state.selectedWeightInKg),
+                initialUnit = if(state.isMetricSystem) WeightUnit.KG else WeightUnit.LBS,
                 onDismiss = { onAction(ProfileSetupAction.OnToggleWeightDropdownClick) },
-                onConfirm = { onAction(ProfileSetupAction.OnConfirmSelectedWeight(it))}
+                onConfirm = { onAction(ProfileSetupAction.OnConfirmSelectedWeight(it))},
+                isMetricSystem = {onAction(ProfileSetupAction.OnChangeUnitSystem(it))}
             )
         }
 
@@ -220,7 +228,9 @@ private fun MobilePortraitLayout(
             modifier = Modifier
                 .fillMaxWidth()
                 .align(Alignment.BottomCenter),
-            onClick = {onAction(ProfileSetupAction.OnStartClick)},
+            onClick = { if(isOnboarding) onAction(ProfileSetupAction.OnStartClick)
+                else onAction(ProfileSetupAction.OnSaveClick)
+            },
             buttonText = if(isOnboarding) {
                 stringResource(Res.string.start)
             } else {
@@ -335,7 +345,8 @@ private fun DropDownSection(
                 onExpandedChange = {
                     onAction(ProfileSetupAction.OnToggleHeightDropdownClick)
                 },
-                selectedOption = state.selectedHeight.toCm().toString() + " cm",
+                selectedOption = if(state.isMetricSystem) state.selectedHeightInCm.toString() + " cm"
+                else state.formattedFeetInches,
                 onOptionSelected = { onAction(ProfileSetupAction.OnToggleHeightDropdownClick) },
                 containerColor = if(isOnboarding) MaterialTheme.colorScheme.backgroundSecondary else
                     MaterialTheme.colorScheme.backgroundWhite
@@ -345,11 +356,8 @@ private fun DropDownSection(
                 onExpandedChange = {
                     onAction(ProfileSetupAction.OnToggleWeightDropdownClick)
                 },
-                selectedOption = if (state.selectedWeight.lbs == null) {
-                    state.selectedWeight.kg.toString() + " kg"
-                } else {
-                    state.selectedWeight.lbs.toString()
-                },
+                selectedOption = if(state.isMetricSystem) state.selectedWeightInKg.toString() + " kg"
+                else state.formattedLbs,
                 onOptionSelected = { onAction(ProfileSetupAction.OnToggleHeightDropdownClick) },
                 containerColor = if(isOnboarding) MaterialTheme.colorScheme.backgroundSecondary else
                     MaterialTheme.colorScheme.backgroundWhite

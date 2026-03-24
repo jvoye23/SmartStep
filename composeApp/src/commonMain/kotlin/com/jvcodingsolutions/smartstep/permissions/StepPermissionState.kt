@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 
 interface StepPermissionState {
     val hasPermission: Boolean
+    val hasBackgroundPermission: Boolean
     val isPermanentlyDenied: Boolean
     fun launchPermissionRequest()
     fun openAppSettings()

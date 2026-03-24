@@ -41,10 +41,36 @@ class TrackRepositoryImpl(
         }
     }
 
+    override suspend fun saveCurrentSteps(profileId: String, date: LocalDate, currentSteps: Int) {
+        val epochDay = date.toEpochDays()
+        val existingTrack = trackDao.getTrackByDate(profileId, epochDay)
+
+        if (existingTrack != null) {
+            trackDao.insertTrack(existingTrack.copy(currentSteps = currentSteps))
+        } else {
+            trackDao.insertTrack(
+                TrackEntity(
+                    profileId = profileId,
+                    dailyStepGoal = 6000, // Default or fetch from settings
+                    currentSteps = currentSteps,
+                    calories = null,
+                    minutesMillis = null,
+                    currentDate = epochDay
+                )
+            )
+        }
+    }
+
     override suspend fun getCurrentStepGoal(profileId: String, date: LocalDate): Int? {
         val epochDay = date.toEpochDays()
         val existingTrack = trackDao.getTrackByDate(profileId, epochDay)
         return existingTrack?.dailyStepGoal
+    }
+
+    override suspend fun getCurrentSteps(profileId: String, date: LocalDate): Int? {
+        val epochDay = date.toEpochDays()
+        val existingTrack = trackDao.getTrackByDate(profileId, epochDay)
+        return existingTrack?.currentSteps
     }
 
     override fun getCurrentStepGoalFlow(profileId: String, date: LocalDate): Flow<Int?> {

@@ -73,7 +73,6 @@ import smartstep.composeapp.generated.resources.two_tap_physical_activity
 @Composable
 fun StepCounterScreenRoot(
     viewModel: StepCounterViewModel = koinViewModel(),
-    //isStepGoalBottomSheetVisible: Boolean = false
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -81,18 +80,15 @@ fun StepCounterScreenRoot(
     var showAllowAccessSheet by remember { mutableStateOf(false) }
     var showEnableAccessManuallySheet by remember { mutableStateOf(false) }
     var showBackgroundAccessSheet by remember { mutableStateOf(false) }
-    //var showStepGoalBottomSheet by remember { mutableStateOf(isStepGoalBottomSheetVisible) }
 
 
     val permissionState = rememberStepPermissionState(
         onPermissionResult = { isGranted, isPermanentlyDenied ->
             if (!isGranted) {
                 if (isPermanentlyDenied) {
-                    // System dialog is permanently suppressed, skip directly to manual enablement
                     showAllowAccessSheet = false
                     showEnableAccessManuallySheet = true
                 } else {
-                    // The user denied it once, but we can still show the system dialog if they try again
                     if (permissionRequestCount == 1) {
                         showAllowAccessSheet = true
                     } else if (permissionRequestCount >= 2) {
@@ -104,6 +100,9 @@ fun StepCounterScreenRoot(
                 showAllowAccessSheet = false
                 showEnableAccessManuallySheet = false
                 showBackgroundAccessSheet = true
+                
+                // If permissions are granted after initial launch, we must restart tracking
+                viewModel.onAction(StepCounterAction.StartTracking)
             }
         }
     )
@@ -111,16 +110,15 @@ fun StepCounterScreenRoot(
     LaunchedEffect(Unit) {
         if (!permissionState.hasPermission && permissionRequestCount == 0) {
             permissionRequestCount++
-            // Fire the request immediately on first launch
-            // If they had previously denied it permanently, the OS will return immediately 
-            // and the `isPermanentlyDenied` check inside `onPermissionResult` handles it.
             permissionState.launchPermissionRequest()
         }
     }
 
-    /*LaunchedEffect(showStepGoalBottomSheet) {
-        viewModel.onAction(StepCounterAction.OnToggleStepGoalBottomSheet)
-    }*/
+    LaunchedEffect(permissionState.hasPermission) {
+        if (permissionState.hasPermission) {
+            viewModel.onAction(StepCounterAction.StartTracking)
+        }
+    }
 
     val displayState = state.copy(
         isAllowAccessBottomSheetVisible = showAllowAccessSheet,
@@ -140,7 +138,17 @@ fun StepCounterScreenRoot(
                     permissionState.openAppSettings()
                 }
                 StepCounterAction.OnContinueBackgroundAccessClick -> {
+                    showBackgroundAccessSheet = false // Close immediately to avoid freeze
                     permissionState.requestBackgroundExecution()
+                }
+                StepCounterAction.ToggleAllowAccessBottomSheet -> {
+                    showAllowAccessSheet = !showAllowAccessSheet
+                }
+                StepCounterAction.ToggleEnableAccessManuallyBottomSheet -> {
+                    showEnableAccessManuallySheet = !showEnableAccessManuallySheet
+                }
+                StepCounterAction.ToggleBackgroundAccessBottomSheet -> {
+                    showBackgroundAccessSheet = !showBackgroundAccessSheet
                 }
                 else -> Unit
             }
@@ -191,11 +199,13 @@ private fun MobilePortraitLayout(
         if(state.isEnableAccessManuallyBottomSheetVisible) {
             EnableAccessManuallyBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
+                onDismissRequest = { onAction(StepCounterAction.ToggleEnableAccessManuallyBottomSheet) },
                 onOpenSettingsClick = { onAction(StepCounterAction.OnOpenSettingsClick) }
             )
         } else if (state.isAllowAccessBottomSheetVisible) {
             AllowAccessBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
+                onDismissRequest = { onAction(StepCounterAction.ToggleAllowAccessBottomSheet) },
                 onAllowAccessClick = { onAction(StepCounterAction.OnAllowAccessButtonClick) }
             )
         }
@@ -203,32 +213,23 @@ private fun MobilePortraitLayout(
         if (state.isBackgroundAccessBottomSheetVisible) {
             BackgroundAccessBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
+                onDismissRequest = { onAction(StepCounterAction.ToggleBackgroundAccessBottomSheet) },
                 onContinueClick = { onAction(StepCounterAction.OnContinueBackgroundAccessClick) }
             )
         }
     }
-    /*if(state.isStepGoalBottomSheetVisible) {
-        StepGoalBottomSheet(
-            modifier = Modifier.fillMaxWidth(),
-            onSave = { value ->
-                onAction(StepCounterAction.OnSaveStepGoal(value))
-            },
-            onCancel = {
-                onAction(StepCounterAction.OnToggleStepGoalBottomSheet)
-            }
-        )
-    }*/
 }
 
 @Composable
 private fun AllowAccessBottomSheet(
     modifier: Modifier = Modifier,
+    onDismissRequest: () -> Unit,
     onAllowAccessClick: () -> Unit
 ) {
     SmartStepSheetDialog(
         modifier = modifier,
         buttonText = stringResource(Res.string.allow_access),
-        onDismissRequest = {},
+        onDismissRequest = onDismissRequest,
         onConfirm = { onAllowAccessClick() },
     ) {
         Column(
@@ -273,12 +274,13 @@ private fun AllowAccessBottomSheet(
 @Composable
 private fun EnableAccessManuallyBottomSheet(
     modifier: Modifier = Modifier,
+    onDismissRequest: () -> Unit,
     onOpenSettingsClick: () -> Unit
 ) {
     SmartStepSheetDialog(
         modifier = modifier,
         buttonText = stringResource(Res.string.open_settings),
-        onDismissRequest = {},
+        onDismissRequest = onDismissRequest,
         onConfirm = { onOpenSettingsClick() },
     ) {
         Column(
@@ -300,11 +302,10 @@ private fun EnableAccessManuallyBottomSheet(
                 color = MaterialTheme.colorScheme.textSecondary,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(32.dp))
             Column(
-                modifier = Modifier
-                    .fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.Start
             ) {
                 Text(
                     text = stringResource(Res.string.one_open_permissions),
@@ -331,12 +332,13 @@ private fun EnableAccessManuallyBottomSheet(
 @Composable
 private fun BackgroundAccessBottomSheet(
     modifier: Modifier = Modifier,
+    onDismissRequest: () -> Unit,
     onContinueClick: () -> Unit
 ) {
     SmartStepSheetDialog(
         modifier = modifier,
         buttonText = stringResource(Res.string.`continue`),
-        onDismissRequest = {},
+        onDismissRequest = onDismissRequest,
         onConfirm = { onContinueClick() },
     ) {
         Column(
@@ -358,13 +360,10 @@ private fun BackgroundAccessBottomSheet(
                 color = MaterialTheme.colorScheme.textSecondary,
                 textAlign = TextAlign.Center
             )
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(44.dp))
         }
     }
 }
-
-
-
 
 @Preview(showSystemUi = true, showBackground = true)
 @Composable
@@ -373,9 +372,10 @@ private fun StepCounterScreenPreview() {
         StepCounterScreen(
             onAction = {},
             state = StepCounterState(
-                currentSteps = 4523,
+                currentSteps = 2410,
                 dailyGoalSteps = 6000
             ),
+            hasPermissions = true
         )
     }
 }

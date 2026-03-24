@@ -10,6 +10,8 @@ sealed interface StepCounterAction {
     data object OnAllowAccessButtonClick: StepCounterAction
     data object OnOpenSettingsClick: StepCounterAction
     data object OnContinueBackgroundAccessClick: StepCounterAction
+    data object OnFixStopCountingIssueClick: StepCounterAction
+    data object StartTracking: StepCounterAction
 
     data object OnToggleStepGoalBottomSheet: StepCounterAction
 

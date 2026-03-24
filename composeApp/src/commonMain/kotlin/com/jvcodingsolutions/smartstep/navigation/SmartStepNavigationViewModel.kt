@@ -23,6 +23,7 @@ class SmartStepNavigationViewModel(
         when (action) {
             SmartStepNavigationAction.OnToggleStepGoalBottomSheet -> { toggleStepGoalDialog() }
             SmartStepNavigationAction.ShowExitDialog -> { showExitDialog() }
+            SmartStepNavigationAction.OnFixStopCountingIssueClick -> { /* Usually handled at UI level or sent to shared flow if needed */ }
             is SmartStepNavigationAction.OnSaveStepGoal -> { saveStepGoal(action.value) }
         }
     }

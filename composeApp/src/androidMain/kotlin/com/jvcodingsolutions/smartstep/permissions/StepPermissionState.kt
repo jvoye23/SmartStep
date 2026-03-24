@@ -2,9 +2,11 @@ package com.jvcodingsolutions.smartstep.permissions
 
 import android.Manifest
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.PowerManager
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -40,6 +42,17 @@ actual fun rememberStepPermissionState(
         )
     }
 
+    var hasBackgroundPermission by remember {
+        mutableStateOf(
+            try {
+                val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                powerManager.isIgnoringBatteryOptimizations(context.packageName)
+            } catch (e: Exception) {
+                false
+            }
+        )
+    }
+
     var isPermanentlyDenied by remember {
         mutableStateOf(false)
     }
@@ -57,6 +70,11 @@ actual fun rememberStepPermissionState(
                             onPermissionResult(true, false)
                         }
                     }
+
+                    val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
+                    val isBackgroundGranted = powerManager.isIgnoringBatteryOptimizations(context.packageName)
+
+                    hasBackgroundPermission = isBackgroundGranted
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -83,9 +101,10 @@ actual fun rememberStepPermissionState(
         onPermissionResult(isGranted, permanentlyDenied)
     }
 
-    return remember(hasPermission, isPermanentlyDenied, launcher, permission, context) {
+    return remember(hasPermission, hasBackgroundPermission, isPermanentlyDenied, launcher, permission, context) {
         object : StepPermissionState {
             override val hasPermission: Boolean = hasPermission
+            override val hasBackgroundPermission: Boolean = hasBackgroundPermission
             override val isPermanentlyDenied: Boolean = isPermanentlyDenied
             
             override fun launchPermissionRequest() {

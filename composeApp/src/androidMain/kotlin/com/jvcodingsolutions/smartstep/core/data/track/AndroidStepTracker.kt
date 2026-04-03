@@ -11,7 +11,9 @@ import androidx.core.content.ContextCompat
 import com.jvcodingsolutions.smartstep.features.step_counter.domain.StepTracker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class AndroidStepTracker(
     private val context: Context
@@ -23,6 +25,9 @@ class AndroidStepTracker(
     private val _stepDeltas = MutableSharedFlow<Int>(extraBufferCapacity = 10)
     override val stepDeltas: Flow<Int> = _stepDeltas.asSharedFlow()
 
+    private val _currentTotalSteps = MutableStateFlow(0)
+    override val currentTotalSteps: Flow<Int> = _currentTotalSteps.asStateFlow()
+
     private var previousTotalSteps: Float = -1f
     private var isTracking = false
 
@@ -31,6 +36,8 @@ class AndroidStepTracker(
             if (event?.sensor?.type == Sensor.TYPE_STEP_COUNTER) {
                 val currentTotalSteps = event.values[0]
                 
+                _currentTotalSteps.value = currentTotalSteps.toInt()
+
                 // If it's the first reading since tracking started, or a reboot occurred
                 if (previousTotalSteps < 0f || currentTotalSteps < previousTotalSteps) {
                     previousTotalSteps = currentTotalSteps

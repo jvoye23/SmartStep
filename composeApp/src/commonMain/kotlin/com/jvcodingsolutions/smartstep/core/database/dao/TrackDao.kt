@@ -6,6 +6,7 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.jvcodingsolutions.smartstep.core.database.entity.TrackEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.datetime.LocalDate
 
 @Dao
 interface TrackDao {
@@ -21,5 +22,9 @@ interface TrackDao {
 
     @Query("SELECT * FROM tracks WHERE profileId = :profileId AND currentDate BETWEEN :startEpochDay AND :endEpochDay ORDER BY currentDate ASC")
     fun getTracksForPeriod(profileId: String, startEpochDay: Long, endEpochDay: Long): Flow<List<TrackEntity>>
+
+    @Query("SELECT * FROM tracks WHERE profileId = :profileId AND currentDate >= :startEpochDay AND currentDate <= :endEpochDay  ORDER BY currentDate ASC ")
+    fun getTracksForDateRangeFlow( profileId: String, startEpochDay: Long, endEpochDay: Long): Flow<List<TrackEntity>>
+
 
 }

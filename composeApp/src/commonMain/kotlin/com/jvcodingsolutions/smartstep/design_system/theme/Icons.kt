@@ -8,13 +8,17 @@ import smartstep.composeapp.generated.resources.arrow_down
 import smartstep.composeapp.generated.resources.arrow_right
 import smartstep.composeapp.generated.resources.arrow_up
 import smartstep.composeapp.generated.resources.menu_burger_square
+import smartstep.composeapp.generated.resources.pause
 import smartstep.composeapp.generated.resources.pen_edit
 import smartstep.composeapp.generated.resources.pin_location_direction
+import smartstep.composeapp.generated.resources.play
 import smartstep.composeapp.generated.resources.power__turn_on
 import smartstep.composeapp.generated.resources.refresh
 import smartstep.composeapp.generated.resources.running
 import smartstep.composeapp.generated.resources.selected_icon
 import smartstep.composeapp.generated.resources.sneakers
+import smartstep.composeapp.generated.resources.time_clock
+import smartstep.composeapp.generated.resources.weight_diet
 import smartstep.composeapp.generated.resources.x
 
 val Icon_ArrowDown: ImageVector
@@ -64,3 +68,19 @@ val Icon_X: ImageVector
 val Icon_PinLocation: ImageVector
     @Composable
     get() = vectorResource(Res.drawable.pin_location_direction)
+
+val Icon_Pause: ImageVector
+    @Composable
+    get() = vectorResource(Res.drawable.pause)
+
+val Icon_Play: ImageVector
+    @Composable
+    get() = vectorResource(Res.drawable.play)
+
+val Icon_WeightScale: ImageVector
+    @Composable
+    get() = vectorResource(Res.drawable.weight_diet)
+
+val Icon_Clock: ImageVector
+    @Composable
+    get() = vectorResource(Res.drawable.time_clock)

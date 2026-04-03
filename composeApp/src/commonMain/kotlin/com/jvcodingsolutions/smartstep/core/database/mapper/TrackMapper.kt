@@ -11,9 +11,10 @@ fun TrackEntity.toDomainModel(): Tracks {
         profileId = profileId,
         dailyStepGoal = dailyStepGoal,
         currentSteps = currentSteps,
+        sensorBaseline = sensorBaseline,
         calories = calories,
         minutes = minutesMillis?.milliseconds,
-        currentDate = LocalDate.fromEpochDays(currentDate)
+        currentDate = LocalDate.fromEpochDays(currentDate.toInt())
     )
 }
 
@@ -23,6 +24,7 @@ fun Tracks.toEntity(): TrackEntity {
         profileId = profileId,
         dailyStepGoal = dailyStepGoal,
         currentSteps = currentSteps,
+        sensorBaseline = sensorBaseline,
         calories = calories,
         minutesMillis = minutes?.inWholeMilliseconds,
         currentDate = currentDate.toEpochDays()

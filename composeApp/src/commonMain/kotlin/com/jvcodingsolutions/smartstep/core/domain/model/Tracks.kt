@@ -8,6 +8,7 @@ data class Tracks(
     val profileId: String,
     val dailyStepGoal: Int,
     val currentSteps: Int = 0,
+    val sensorBaseline: Int = 0,
     val calories: Int? = null,
     val minutes: Duration? = null,
     val currentDate: LocalDate

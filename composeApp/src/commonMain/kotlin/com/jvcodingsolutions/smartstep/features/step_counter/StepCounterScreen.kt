@@ -14,19 +14,16 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -35,6 +32,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jvcodingsolutions.smartstep.core.presentation.util.DeviceConfiguration
+import com.jvcodingsolutions.smartstep.core.presentation.util.formattedDate
+import com.jvcodingsolutions.smartstep.design_system.components.DailyAverageCard
+import com.jvcodingsolutions.smartstep.design_system.components.DatePickerDialog
+import com.jvcodingsolutions.smartstep.design_system.components.EditStepsDialog
+import com.jvcodingsolutions.smartstep.design_system.components.ResetStepsConfirmationDialog
 import com.jvcodingsolutions.smartstep.design_system.components.SmartStepSheetDialog
 import com.jvcodingsolutions.smartstep.design_system.components.StepCounterCard
 import com.jvcodingsolutions.smartstep.design_system.theme.Icon_PinLocation
@@ -47,14 +49,8 @@ import com.jvcodingsolutions.smartstep.design_system.theme.bodyLargeRegular
 import com.jvcodingsolutions.smartstep.design_system.theme.strokeMain
 import com.jvcodingsolutions.smartstep.design_system.theme.textPrimary
 import com.jvcodingsolutions.smartstep.design_system.theme.textSecondary
-import com.jvcodingsolutions.smartstep.features.step_counter.components.StepGoalBottomSheet
-import com.jvcodingsolutions.smartstep.navigation.Navigator
-import com.jvcodingsolutions.smartstep.navigation.Route
-import com.jvcodingsolutions.smartstep.navigation.SmartStepNavigationDrawer
-import com.jvcodingsolutions.smartstep.navigation.TOP_LEVEL_DESTINATIONS
-import com.jvcodingsolutions.smartstep.navigation.rememberNavigationState
+import com.jvcodingsolutions.smartstep.navigation.SmartStepNavigationAction
 import com.jvcodingsolutions.smartstep.permissions.rememberStepPermissionState
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import smartstep.composeapp.generated.resources.Res
@@ -73,6 +69,10 @@ import smartstep.composeapp.generated.resources.two_tap_physical_activity
 @Composable
 fun StepCounterScreenRoot(
     viewModel: StepCounterViewModel = koinViewModel(),
+    shouldOpenEditSteps: Boolean = false,
+    onEditStepsOpened: () -> Unit = {},
+    shouldOpenResetStepsDialog: Boolean = false,
+    onResetStepsOpened: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -117,6 +117,20 @@ fun StepCounterScreenRoot(
     LaunchedEffect(permissionState.hasPermission) {
         if (permissionState.hasPermission) {
             viewModel.onAction(StepCounterAction.StartTracking)
+        }
+    }
+
+    LaunchedEffect(shouldOpenEditSteps) {
+        if (shouldOpenEditSteps) {
+            viewModel.onAction(StepCounterAction.OpenEditStepsDialog)
+            onEditStepsOpened()
+        }
+    }
+
+    LaunchedEffect( shouldOpenResetStepsDialog) {
+        if(shouldOpenResetStepsDialog) {
+            viewModel.onAction(StepCounterAction.OnToggleResetStepsConfirmationDialog)
+            onResetStepsOpened()
         }
     }
 
@@ -173,6 +187,38 @@ private fun StepCounterScreen(
         state = state,
         hasPermissions = hasPermissions,
     )
+
+    if(state.isEditStepsDialogVisible) {
+        EditStepsDialog(
+            initialDate = formattedDate(state.editedDate),
+            onDateClick = { onAction(StepCounterAction.ToggleEditDateClick) },
+            steps = state.currentSteps,
+            onDismiss = { onAction(StepCounterAction.ToggleEditStepsDialog) },
+            onSave = { date, steps ->
+                onAction(StepCounterAction.OnConfirmEditSteps(date = date, steps = steps))
+            }
+        )
+    }
+    if(state.isDatePickerDialogVisible) {
+        DatePickerDialog(
+            initialDate = state.editedDate,
+            onDismiss = { onAction(StepCounterAction.ToggleEditDateClick) },
+            onConfirm = { date ->
+                onAction(StepCounterAction.OnConfirmEditDate(date))
+            }
+        )
+    }
+
+    if(state.isResetStepsConfirmationDialogVisible) {
+        ResetStepsConfirmationDialog(
+            onCancel = {
+                onAction(StepCounterAction.OnToggleResetStepsConfirmationDialog)
+            },
+            onReset = {
+                onAction(StepCounterAction.OnResetTodayStepsClick)
+            }
+        )
+    }
 }
 
 @Composable
@@ -192,7 +238,14 @@ private fun MobilePortraitLayout(
         StepCounterCard(
             currentSteps = state.currentSteps,
             dailyGoalSteps = state.dailyGoalSteps,
+            onEditClick = { onAction(StepCounterAction.ToggleEditStepsDialog) },
+            togglePlayPause = { onAction(StepCounterAction.TogglePlayPause) },
+            distance = state.distanceTraveled,
+            kcal = state.caloriesBurned,
+            isPaused = state.isStepTrackerPaused,
         )
+        Spacer(modifier = Modifier.height(8.dp))
+        DailyAverageCard(state = state.dailyAverageState)
     }
 
     if(!hasPermissions) {

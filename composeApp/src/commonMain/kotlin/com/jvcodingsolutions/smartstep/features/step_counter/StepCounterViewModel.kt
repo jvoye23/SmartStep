@@ -4,26 +4,44 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jvcodingsolutions.smartstep.core.domain.ProfileStorage
 import com.jvcodingsolutions.smartstep.core.domain.repository.TrackRepository
+import com.jvcodingsolutions.smartstep.core.presentation.util.*
 import com.jvcodingsolutions.smartstep.features.step_counter.domain.StepTracker
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.datetime.DateTimeUnit
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.DurationUnit
 
+
+const val savingStepsToDbInterval = 10
 class StepCounterViewModel(
     private val trackRepository: TrackRepository,
     private val profileStorage: ProfileStorage,
-    private val stepTracker: StepTracker
+    private val stepTracker: StepTracker,
+    private val applicationScope: CoroutineScope
 ): ViewModel() {
+
 
     private val _state = MutableStateFlow(StepCounterState())
 
     private var hasLoadedInitialData = false
+    private var numberOfStepsNotWrittenToDb = 0
+    private var lastStepDetectionTime: Long? = null
 
     val state = _state
         .onStart {
@@ -39,6 +57,8 @@ class StepCounterViewModel(
             _state.value
         )
 
+
+
     private fun loadInitialData() {
         viewModelScope.launch {
             val profileInfo = profileStorage.get()
@@ -46,11 +66,46 @@ class StepCounterViewModel(
                 val profileId = profileInfo.id
                 val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
                 
-                _state.update { it.copy(profileId = profileId) }
+                _state.update {
+                    it.copy(
+                        profileId = profileId,
+                        isProfileMetricSystem = profileInfo.isMetricSystem
+                    )
+                }
 
-                // Load initial current steps for today
-                val initialSteps = trackRepository.getCurrentSteps(profileId, today) ?: 0
-                _state.update { it.copy(currentSteps = initialSteps) }
+                // Load steps from database
+                launch {
+                    trackRepository.getCurrentStepsFlow(profileId, today)
+                        .distinctUntilChanged() // Ignores false emissions when the step goal changes in the db
+                        .collect { stepsFromDb ->
+                            val dbSteps = stepsFromDb ?: 0
+                            val calculatedDistance = if (state.value.isProfileMetricSystem) {
+                                calculateFormattedDistance(
+                                    steps = dbSteps + numberOfStepsNotWrittenToDb,
+                                    heightCm = profileInfo.heightInCm ?: 175,
+                                    system = MeasurementSystem.METRIC,
+                                )
+                            } else  {
+                                calculateFormattedDistance(
+                                    steps = dbSteps + numberOfStepsNotWrittenToDb,
+                                    heightCm = profileInfo.heightInCm ?: 175,
+                                    system = MeasurementSystem.IMPERIAL,
+                                )
+                            }
+                            val calories = calculateCalories(
+                                steps = dbSteps + numberOfStepsNotWrittenToDb,
+                                profileInfo = profileInfo
+                            )
+
+                            _state.update {
+                                it.copy(
+                                    currentSteps = dbSteps + numberOfStepsNotWrittenToDb,
+                                    distanceTraveled = calculatedDistance,
+                                    caloriesBurned = calories
+                                )
+                            }
+                        }
+                }
 
                 // Fetch step goal reactively
                 launch {
@@ -63,18 +118,52 @@ class StepCounterViewModel(
 
                 // Collect step deltas and debounce database saves
                 launch {
-                    var unwrittenSteps = 0
+
                     stepTracker.stepDeltas.collect { delta ->
-                        unwrittenSteps += delta
+                        val currentTime = Clock.System.now().toEpochMilliseconds()
+                        val timeSinceLastStep = lastStepDetectionTime?.let {
+                            (currentTime - it).milliseconds
+                        }
+                        lastStepDetectionTime = currentTime
+
+                        val activeTimeDelta = calculateActiveTimeDelta(timeSinceLastStep)
+                        val newRawDuration = _state.value.activityDurationRaw + activeTimeDelta
+
+                        numberOfStepsNotWrittenToDb += delta
                         val newTotal = _state.value.currentSteps + delta
                         
-                        _state.update { it.copy(currentSteps = newTotal) }
+                        _state.update { it.copy(
+                            currentSteps = newTotal,
+                            activityDurationRaw = newRawDuration,
+                            activityDuration = formatActivityDuration(newRawDuration)
+                        ) }
 
                         // Write to DB periodically (e.g. every 10 steps)
-                        if (unwrittenSteps >= 10) {
+                        if (numberOfStepsNotWrittenToDb >= savingStepsToDbInterval) {
                             trackRepository.saveCurrentSteps(profileId, today, newTotal)
-                            unwrittenSteps = 0
+                            numberOfStepsNotWrittenToDb = 0
                         }
+                    }
+                }
+                launch {
+                    val weeklyDbFlow = trackRepository.getWeeklyTracksFlow(
+                        profileId = profileId,
+                        startDate = today.minus(6, DateTimeUnit.DAY),
+                        endDate = today
+                    )
+
+                    // We extract just the currentSteps from our state to observe it
+                    val liveTodayStepsFlow = _state.map { it.currentSteps }.distinctUntilChanged()
+
+                    // combine() waits for BOTH flows to emit, then gives us the latest from both
+                    combine(weeklyDbFlow, liveTodayStepsFlow) { tracks, realTimeTodaySteps ->
+                        mapTracksToDailyAverageState(
+                            tracks = tracks,
+                            today = today,
+                            todayCurrentSteps = realTimeTodaySteps // Feed the live data in!
+                        )
+                    }.collect { newDailyAverageState ->
+                        _state.update { it.copy(dailyAverageState = newDailyAverageState) }
                     }
                 }
             }
@@ -84,7 +173,7 @@ class StepCounterViewModel(
     override fun onCleared() {
         super.onCleared()
         // Ensure final steps are saved before view model is destroyed
-        viewModelScope.launch {
+        applicationScope.launch {
             val currentState = _state.value
             if (currentState.profileId.isNotEmpty()) {
                 val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
@@ -102,9 +191,92 @@ class StepCounterViewModel(
             StepCounterAction.ToggleEnableAccessManuallyBottomSheet -> { toggleEnableAccessManuallyBottomSheet() }
             StepCounterAction.OnToggleStepGoalBottomSheet -> { toggleStepGoalBottomSheet() }
             StepCounterAction.StartTracking -> { stepTracker.startTracking() }
+            StepCounterAction.ToggleEditStepsDialog -> { toggleEditStepsDialog() }
+            StepCounterAction.OpenEditStepsDialog -> { openEditStepsDialog() }
+            StepCounterAction.ToggleEditDateClick -> { toggleDatePickerDialog() }
+            StepCounterAction.TogglePlayPause -> { togglePlayPause() }
             is StepCounterAction.OnSaveStepGoal -> { saveStepGoal(action.value) }
+            is StepCounterAction.OnConfirmEditSteps -> { confirmEditSteps(action.date, action.steps) }
+            is StepCounterAction.OnConfirmEditDate -> { confirmEditDate(action.date) }
+            StepCounterAction.OnToggleResetStepsConfirmationDialog -> { toggleResetStepsConfirmationDialog() }
+            StepCounterAction.OnResetTodayStepsClick -> { resetTodaySteps() }
             else -> Unit
         }
+    }
+
+    private fun confirmEditDate(editDate: LocalDate) {
+        _state.update { it.copy(
+            editedDate = editDate,
+            isDatePickerDialogVisible = false,
+            isEditStepsDialogVisible = true
+        ) }
+    }
+
+    private fun togglePlayPause() {
+        if(_state.value.isStepTrackerPaused) {
+            stepTracker.startTracking()
+        } else {
+            stepTracker.stopTracking()
+        }
+        _state.update { it.copy(
+            isStepTrackerPaused = !_state.value.isStepTrackerPaused
+        ) }
+        stepTracker.stopTracking()
+    }
+
+    private fun resetTodaySteps() {
+        viewModelScope.launch {
+            val profileInfo = profileStorage.get()
+            if (profileInfo != null) {
+                val currentSensorValue = stepTracker.currentTotalSteps.first()
+                trackRepository.resetDailySteps(
+                    profileId = profileInfo.id,
+                    date = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
+                    newBaseline = currentSensorValue
+                )
+            }
+            numberOfStepsNotWrittenToDb = 0
+            _state.update { it.copy(
+                isResetStepsConfirmationDialogVisible = false,
+                activityDurationRaw = Duration.ZERO,
+                activityDuration = "0 min"
+            ) }
+        }
+    }
+
+    private fun toggleResetStepsConfirmationDialog() {
+        _state.update { it.copy(
+            isResetStepsConfirmationDialogVisible = !_state.value.isResetStepsConfirmationDialogVisible
+        ) }
+    }
+
+    private fun toggleDatePickerDialog() {
+        _state.update { it.copy(
+            isDatePickerDialogVisible = !_state.value.isDatePickerDialogVisible
+        ) }
+    }
+
+    private fun confirmEditSteps(date: LocalDate, steps: Int) {
+        viewModelScope.launch {
+            trackRepository.saveCurrentSteps(state.value.profileId, date, steps)
+            numberOfStepsNotWrittenToDb = 0
+            _state.update { it.copy(
+                currentSteps = steps,
+                isEditStepsDialogVisible = false
+            ) }
+        }
+    }
+
+    private fun toggleEditStepsDialog() {
+        _state.update { it.copy(
+            isEditStepsDialogVisible = !_state.value.isEditStepsDialogVisible
+        ) }
+    }
+
+    private fun openEditStepsDialog() {
+        _state.update { it.copy(
+            isEditStepsDialogVisible = true
+        ) }
     }
 
     private fun toggleStepGoalBottomSheet() {
@@ -113,7 +285,6 @@ class StepCounterViewModel(
                 isStepGoalBottomSheetVisible = !_state.value.isStepGoalBottomSheetVisible
             )
         }
-        println("State: ${_state.value}")
     }
 
     private fun saveStepGoal(value: Int) {

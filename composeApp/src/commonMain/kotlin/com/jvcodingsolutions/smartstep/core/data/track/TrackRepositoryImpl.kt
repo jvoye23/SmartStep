@@ -12,6 +12,8 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 
 class TrackRepositoryImpl(
     private val trackDao: TrackDao
@@ -33,6 +35,7 @@ class TrackRepositoryImpl(
                     profileId = profileId,
                     dailyStepGoal = stepGoal,
                     currentSteps = 0,
+                    sensorBaseline = 0,
                     calories = null,
                     minutesMillis = null,
                     currentDate = epochDay
@@ -53,6 +56,60 @@ class TrackRepositoryImpl(
                     profileId = profileId,
                     dailyStepGoal = 6000, // Default or fetch from settings
                     currentSteps = currentSteps,
+                    sensorBaseline = 0,
+                    calories = null,
+                    minutesMillis = null,
+                    currentDate = epochDay
+                )
+            )
+        }
+    }
+
+    override suspend fun saveActivityDuration(profileId: String, date: LocalDate, duration: Duration) {
+        val epochDay = date.toEpochDays()
+        val existingTrack = trackDao.getTrackByDate(profileId, epochDay)
+
+        if (existingTrack != null) {
+            trackDao.insertTrack(existingTrack.copy(minutesMillis = duration.inWholeMilliseconds))
+        } else {
+            return
+        }
+    }
+
+    override suspend fun saveSensorBaseline(profileId: String, date: LocalDate, baseline: Int) {
+        val epochDay = date.toEpochDays()
+        val existingTrack = trackDao.getTrackByDate(profileId, epochDay)
+
+        if (existingTrack != null) {
+            trackDao.insertTrack(existingTrack.copy(sensorBaseline = baseline))
+        } else {
+            trackDao.insertTrack(
+                TrackEntity(
+                    profileId = profileId,
+                    dailyStepGoal = 6000,
+                    currentSteps = 0,
+                    sensorBaseline = baseline,
+                    calories = null,
+                    minutesMillis = null,
+                    currentDate = epochDay
+                )
+            )
+        }
+    }
+
+    override suspend fun resetDailySteps(profileId: String, date: LocalDate, newBaseline: Int) {
+        val epochDay = date.toEpochDays()
+        val existingTrack = trackDao.getTrackByDate(profileId, epochDay)
+
+        if (existingTrack != null) {
+            trackDao.insertTrack(existingTrack.copy(currentSteps = 0, sensorBaseline = newBaseline))
+        } else {
+            trackDao.insertTrack(
+                TrackEntity(
+                    profileId = profileId,
+                    dailyStepGoal = 6000,
+                    currentSteps = 0,
+                    sensorBaseline = newBaseline,
                     calories = null,
                     minutesMillis = null,
                     currentDate = epochDay
@@ -71,6 +128,20 @@ class TrackRepositoryImpl(
         val epochDay = date.toEpochDays()
         val existingTrack = trackDao.getTrackByDate(profileId, epochDay)
         return existingTrack?.currentSteps
+    }
+
+    override suspend fun getCurrentActivityDurationInMinutes(
+        profileId: String,
+        date: LocalDate
+    ): Duration? {
+        val epochDay = date.toEpochDays()
+        val existingTrack = trackDao.getTrackByDate(profileId, epochDay)
+        return existingTrack?.minutesMillis?.minutes
+    }
+
+    override fun getCurrentStepsFlow(profileId: String, date: LocalDate): Flow<Int?> {
+        val epochDay = date.toEpochDays()
+        return trackDao.getTrackByDateFlow(profileId, epochDay).map { it?.currentSteps }
     }
 
     override fun getCurrentStepGoalFlow(profileId: String, date: LocalDate): Flow<Int?> {
@@ -106,6 +177,7 @@ class TrackRepositoryImpl(
                             profileId = profileId,
                             dailyStepGoal = 0,
                             currentSteps = 0,
+                            sensorBaseline = 0,
                             calories = null,
                             minutes = null,
                             currentDate = currentDay
@@ -116,5 +188,17 @@ class TrackRepositoryImpl(
             }
             weekTracks
         }
+    }
+
+    override fun getWeeklyTracksFlow(
+        profileId: String,
+        startDate: LocalDate,
+        endDate: LocalDate
+    ): Flow<List<Tracks>> {
+        return trackDao.getTracksForDateRangeFlow(profileId, startDate.toEpochDays(), endDate.toEpochDays())
+            .map { entities ->
+                // Assuming you have an extension function to map DB entity to Domain model
+                entities.map { it.toDomainModel() }
+            }
     }
 }

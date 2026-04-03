@@ -25,7 +25,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -34,15 +33,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.ui.NavDisplay
 import com.jvcodingsolutions.smartstep.core.presentation.util.DeviceConfiguration
+import com.jvcodingsolutions.smartstep.design_system.components.ResetStepsConfirmationDialog
 import com.jvcodingsolutions.smartstep.design_system.components.SmartStepCloseAppDialog
 import com.jvcodingsolutions.smartstep.design_system.theme.Icon_MenuBurgerSquare
 import com.jvcodingsolutions.smartstep.design_system.theme.SmartStepTheme
 import com.jvcodingsolutions.smartstep.design_system.theme.backgroundMain
-import com.jvcodingsolutions.smartstep.design_system.theme.backgroundSecondary
 import com.jvcodingsolutions.smartstep.design_system.theme.backgroundWhite
 import com.jvcodingsolutions.smartstep.design_system.theme.textPrimary
-import com.jvcodingsolutions.smartstep.features.profile_setup.ProfileSetupScreenRoot
-import com.jvcodingsolutions.smartstep.features.step_counter.StepCounterAction
 import com.jvcodingsolutions.smartstep.features.step_counter.StepCounterScreenRoot
 import com.jvcodingsolutions.smartstep.features.step_counter.components.StepGoalBottomSheet
 import com.jvcodingsolutions.smartstep.permissions.rememberStepPermissionState
@@ -50,7 +47,6 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
 import smartstep.composeapp.generated.resources.Res
-import smartstep.composeapp.generated.resources.my_profile
 import smartstep.composeapp.generated.resources.smart_step
 
 @Composable
@@ -62,6 +58,8 @@ fun SmartStepNavigation(
     val state by viewModel.state.collectAsStateWithLifecycle()
 
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    var shouldOpenEditSteps by remember { mutableStateOf(false) }
+    var shouldOpenResetStepsConfirmationDialog by remember { mutableStateOf(false) }
 
     // A CoroutineScope is needed to run the drawer open/close animations
     val scope = rememberCoroutineScope()
@@ -121,10 +119,25 @@ fun SmartStepNavigation(
                 drawerState.close()
                 onNavigateToProfileSettings()
             }
+        },
+        onEditStepsClick = {
+            scope.launch {
+                drawerState.close()
+                if (smartStepNavigationState.topLevelRoute != Route.StepCounterRoute.StepGoalRoute) {
+                    navigator.navigate(Route.StepCounterRoute.StepGoalRoute)
+                }
+                shouldOpenEditSteps = true
+            }
+        },
+        onResetTodaysStepsClick = {
+            scope.launch {
+                drawerState.close()
+                if (smartStepNavigationState.topLevelRoute != Route.StepCounterRoute.StepGoalRoute) {
+                    navigator.navigate(Route.StepCounterRoute.StepGoalRoute)
+                }
+                shouldOpenResetStepsConfirmationDialog = true
+            }
         }
-
-
-
     ){
         Scaffold(
             containerColor = when(smartStepNavigationState.topLevelRoute){
@@ -185,7 +198,12 @@ fun SmartStepNavigation(
                 entries = smartStepNavigationState.toEntries(
                     entryProvider {
                         entry<Route.StepCounterRoute.StepGoalRoute> {
-                            StepCounterScreenRoot()
+                            StepCounterScreenRoot(
+                                shouldOpenEditSteps = shouldOpenEditSteps,
+                                onEditStepsOpened = { shouldOpenEditSteps = false },
+                                shouldOpenResetStepsDialog = shouldOpenResetStepsConfirmationDialog,
+                                onResetStepsOpened = { shouldOpenResetStepsConfirmationDialog = false }
+                            )
                         }
                     }
                 )
@@ -213,9 +231,6 @@ fun SmartStepNavigation(
             }
         )
     }
-
-
-
 }
 
 @Preview

@@ -41,6 +41,9 @@ val ColorScheme.backgroundWhite: Color
 val ColorScheme.strokeMain: Color
     get() = StrokeMain
 
+val ColorScheme.additionalGreen: Color
+    get() = AdditionalGreen
+
 
 
 @Composable

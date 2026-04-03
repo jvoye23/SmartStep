@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.emptyFlow
 class IOSStepTracker : StepTracker {
     // Basic stub for iOS. Apple's CMPedometer can be used here later.
     override val stepDeltas: Flow<Int> = emptyFlow()
+    override val currentTotalSteps: Flow<Int> = emptyFlow()
 
     override fun startTracking() {
         // Implement CMPedometer logic for iOS later

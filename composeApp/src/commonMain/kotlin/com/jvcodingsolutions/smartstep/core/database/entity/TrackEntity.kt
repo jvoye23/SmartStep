@@ -28,6 +28,7 @@ data class TrackEntity(
     val profileId: String,
     val dailyStepGoal: Int,
     val currentSteps: Int = 0,
+    val sensorBaseline: Int = 0,
     val calories: Int? = null,
     val minutesMillis: Long? = null,
     val currentDate: Long // Epoch days

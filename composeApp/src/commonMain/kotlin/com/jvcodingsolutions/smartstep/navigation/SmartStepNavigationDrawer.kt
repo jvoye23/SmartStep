@@ -25,9 +25,11 @@ import com.jvcodingsolutions.smartstep.design_system.theme.strokeMain
 import com.jvcodingsolutions.smartstep.design_system.theme.textPrimary
 import org.jetbrains.compose.resources.stringResource
 import smartstep.composeapp.generated.resources.Res
+import smartstep.composeapp.generated.resources.edit_steps
 import smartstep.composeapp.generated.resources.exit
 import smartstep.composeapp.generated.resources.fix_the_stop_counting_issue
 import smartstep.composeapp.generated.resources.personal_settings
+import smartstep.composeapp.generated.resources.reset_todays_steps
 import smartstep.composeapp.generated.resources.step_goal
 
 @Composable
@@ -40,6 +42,8 @@ fun SmartStepNavigationDrawer(
     onShowExitDialog: () -> Unit,
     onStepGoalClick: () -> Unit,
     onPersonalSettingsClick: () -> Unit,
+    onEditStepsClick: () -> Unit,
+    onResetTodaysStepsClick: () -> Unit,
     content: @Composable () -> Unit
 ) {
 
@@ -58,7 +62,9 @@ fun SmartStepNavigationDrawer(
                     onSelectKey = onSelectKey,
                     onShowExitDialog = onShowExitDialog,
                     onStepGoalClick = onStepGoalClick,
-                    onPersonalSettingsClick = onPersonalSettingsClick
+                    onPersonalSettingsClick = onPersonalSettingsClick,
+                    onEditStepsClick = onEditStepsClick,
+                    onResetTodaysStepsClick = onResetTodaysStepsClick
                 )
             }
         },
@@ -78,7 +84,9 @@ private fun DrawerLayout(
     onSelectKey: (NavKey) -> Unit,
     onShowExitDialog: () -> Unit,
     onStepGoalClick: () -> Unit,
-    onPersonalSettingsClick: () -> Unit
+    onPersonalSettingsClick: () -> Unit,
+    onEditStepsClick: () -> Unit,
+    onResetTodaysStepsClick: () -> Unit,
 ) {
 
     if (!hasBackgroundPermission) {
@@ -154,6 +162,64 @@ private fun DrawerLayout(
         selected = false,
         onClick = {
             onPersonalSettingsClick()
+        },
+        modifier = Modifier
+            .padding(12.dp),
+        colors = NavigationDrawerItemDefaults.colors(
+            selectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
+            unselectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
+            selectedTextColor = MaterialTheme.colorScheme.textPrimary
+        ),
+        shape = RectangleShape
+    )
+
+    HorizontalDivider(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.strokeMain
+    )
+    NavigationDrawerItem(
+        label = {
+            Text(
+                text = stringResource(Res.string.edit_steps),
+                style = MaterialTheme.typography.bodyLargeMedium,
+                color = MaterialTheme.colorScheme.textPrimary
+            )
+        },
+        selected = false,
+        onClick = {
+            onEditStepsClick()
+        },
+        modifier = Modifier
+            .padding(12.dp),
+        colors = NavigationDrawerItemDefaults.colors(
+            selectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
+            unselectedContainerColor = MaterialTheme.colorScheme.backgroundSecondary,
+            selectedTextColor = MaterialTheme.colorScheme.textPrimary
+        ),
+        shape = RectangleShape
+    )
+
+    HorizontalDivider(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 12.dp),
+        thickness = 1.dp,
+        color = MaterialTheme.colorScheme.strokeMain
+    )
+    NavigationDrawerItem(
+        label = {
+            Text(
+                text = stringResource(Res.string.reset_todays_steps),
+                style = MaterialTheme.typography.bodyLargeMedium,
+                color = MaterialTheme.colorScheme.textPrimary
+            )
+        },
+        selected = false,
+        onClick = {
+            onResetTodaysStepsClick()
         },
         modifier = Modifier
             .padding(12.dp),

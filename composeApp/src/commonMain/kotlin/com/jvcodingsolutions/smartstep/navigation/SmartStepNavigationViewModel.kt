@@ -4,17 +4,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jvcodingsolutions.smartstep.core.domain.ProfileStorage
 import com.jvcodingsolutions.smartstep.core.domain.repository.TrackRepository
+import com.jvcodingsolutions.smartstep.features.step_counter.domain.StepTracker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 
 class SmartStepNavigationViewModel(
     private val trackRepository: TrackRepository,
-    private val profileStorage: ProfileStorage
+    private val profileStorage: ProfileStorage,
+    private val stepTracker: StepTracker
 ): ViewModel() {
     private val _state = MutableStateFlow(SmartStepNavigationUiState())
     val state = _state.asStateFlow()
@@ -34,7 +36,7 @@ class SmartStepNavigationViewModel(
             if (profileInfo != null) {
                 trackRepository.saveDailyStepGoal(
                     profileId = profileInfo.id,
-                    date = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
+                    date = kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date,
                     stepGoal = stepGoal
                 )
             }

@@ -13,7 +13,7 @@ import com.jvcodingsolutions.smartstep.core.database.mapper.RoomConverters
 
 @Database(
     entities = [ProfileInfoEntity::class, TrackEntity::class],
-    version = 1
+    version = 3
 )
 @TypeConverters(RoomConverters::class)
 @ConstructedBy(SmartStepDatabaseConstructor::class)

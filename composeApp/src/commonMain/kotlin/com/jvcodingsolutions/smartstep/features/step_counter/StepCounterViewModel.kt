@@ -73,37 +73,48 @@ class StepCounterViewModel(
                     )
                 }
 
-                // Load steps from database
+                // Load steps from database and unwritten steps reactively
                 launch {
-                    trackRepository.getCurrentStepsFlow(profileId, today)
-                        .distinctUntilChanged() // Ignores false emissions when the step goal changes in the db
-                        .collect { stepsFromDb ->
-                            val dbSteps = stepsFromDb ?: 0
+                    trackRepository.getLiveStepsFlow(profileId, today)
+                        .distinctUntilChanged()
+                        .collect { currentTotalSteps ->
                             val calculatedDistance = if (state.value.isProfileMetricSystem) {
                                 calculateFormattedDistance(
-                                    steps = dbSteps + numberOfStepsNotWrittenToDb,
+                                    steps = currentTotalSteps,
                                     heightCm = profileInfo.heightInCm ?: 175,
                                     system = MeasurementSystem.METRIC,
                                 )
                             } else  {
                                 calculateFormattedDistance(
-                                    steps = dbSteps + numberOfStepsNotWrittenToDb,
+                                    steps = currentTotalSteps,
                                     heightCm = profileInfo.heightInCm ?: 175,
                                     system = MeasurementSystem.IMPERIAL,
                                 )
                             }
                             val calories = calculateCalories(
-                                steps = dbSteps + numberOfStepsNotWrittenToDb,
+                                steps = currentTotalSteps,
                                 profileInfo = profileInfo
                             )
 
                             _state.update {
                                 it.copy(
-                                    currentSteps = dbSteps + numberOfStepsNotWrittenToDb,
+                                    currentSteps = currentTotalSteps,
                                     distanceTraveled = calculatedDistance,
                                     caloriesBurned = calories
                                 )
                             }
+                        }
+                }
+
+                // Load activity duration reactively
+                launch {
+                    trackRepository.getLiveDurationFlow(profileId, today)
+                        .distinctUntilChanged()
+                        .collect { duration ->
+                            _state.update { it.copy(
+                                activityDurationRaw = duration,
+                                activityDuration = formatActivityDuration(duration)
+                            ) }
                         }
                 }
 
@@ -116,9 +127,8 @@ class StepCounterViewModel(
                     }
                 }
 
-                // Collect step deltas and debounce database saves
+                // Collect step deltas and update unwritten steps in repository
                 launch {
-
                     stepTracker.stepDeltas.collect { delta ->
                         val currentTime = Clock.System.now().toEpochMilliseconds()
                         val timeSinceLastStep = lastStepDetectionTime?.let {
@@ -127,20 +137,18 @@ class StepCounterViewModel(
                         lastStepDetectionTime = currentTime
 
                         val activeTimeDelta = calculateActiveTimeDelta(timeSinceLastStep)
-                        val newRawDuration = _state.value.activityDurationRaw + activeTimeDelta
 
+                        // Centralize delta tracking in repository
+                        trackRepository.addStepDelta(delta)
+                        if (activeTimeDelta > Duration.ZERO) {
+                            trackRepository.addDurationDelta(activeTimeDelta)
+                        }
+
+                        // Periodic DB save logic
                         numberOfStepsNotWrittenToDb += delta
-                        val newTotal = _state.value.currentSteps + delta
-                        
-                        _state.update { it.copy(
-                            currentSteps = newTotal,
-                            activityDurationRaw = newRawDuration,
-                            activityDuration = formatActivityDuration(newRawDuration)
-                        ) }
-
-                        // Write to DB periodically (e.g. every 10 steps)
                         if (numberOfStepsNotWrittenToDb >= savingStepsToDbInterval) {
-                            trackRepository.saveCurrentSteps(profileId, today, newTotal)
+                            trackRepository.saveCurrentSteps(profileId, today, _state.value.currentSteps)
+                            trackRepository.saveActivityDuration(profileId, today, _state.value.activityDurationRaw)
                             numberOfStepsNotWrittenToDb = 0
                         }
                     }
@@ -221,7 +229,6 @@ class StepCounterViewModel(
         _state.update { it.copy(
             isStepTrackerPaused = !_state.value.isStepTrackerPaused
         ) }
-        stepTracker.stopTracking()
     }
 
     private fun resetTodaySteps() {
@@ -258,10 +265,17 @@ class StepCounterViewModel(
 
     private fun confirmEditSteps(date: LocalDate, steps: Int) {
         viewModelScope.launch {
+            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
             trackRepository.saveCurrentSteps(state.value.profileId, date, steps)
-            numberOfStepsNotWrittenToDb = 0
+            
+            if (date == today) {
+                numberOfStepsNotWrittenToDb = 0
+                // The live steps flow will pick up the change from DB, 
+                // but we can update immediately for better UX if needed.
+                // However, the collector in loadInitialData is already watching this.
+            }
+            
             _state.update { it.copy(
-                currentSteps = steps,
                 isEditStepsDialogVisible = false
             ) }
         }

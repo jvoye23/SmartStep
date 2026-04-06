@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.jvcodingsolutions.smartstep.core.presentation.util.DeviceConfiguration
 import com.jvcodingsolutions.smartstep.design_system.theme.buttonPrimary
 import com.jvcodingsolutions.smartstep.design_system.theme.buttonSecondary
 import com.jvcodingsolutions.smartstep.design_system.theme.textWhite
@@ -37,9 +39,19 @@ fun DailyAverageCard(
     state: DailyAverageState,
     modifier: Modifier = Modifier
 ) {
+    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+    val deviceConfiguration = DeviceConfiguration.fromWindowSizeClass(windowSizeClass)
+
+    val cardWidthFraction: Float = when(deviceConfiguration) {
+        DeviceConfiguration.MOBILE_PORTRAIT -> 1f
+        DeviceConfiguration.MOBILE_LANDSCAPE -> 0.5f
+        DeviceConfiguration.TABLET_PORTRAIT -> 0.5f
+        DeviceConfiguration.TABLET_LANDSCAPE,
+        DeviceConfiguration.DESKTOP -> 0.3f
+    }
 
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth(fraction = cardWidthFraction),
         color = MaterialTheme.colorScheme.buttonPrimary,
         shape = RoundedCornerShape(24.dp),
     ) {

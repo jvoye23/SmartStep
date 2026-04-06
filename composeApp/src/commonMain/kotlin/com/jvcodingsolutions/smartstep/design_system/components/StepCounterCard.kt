@@ -137,7 +137,7 @@ fun StepCounterCard(
                     )
                 ) {
                     Icon(
-                        imageVector = if(!isPaused) Icon_Play else Icon_Pause,
+                        imageVector = if(isPaused) Icon_Play else Icon_Pause,
                         contentDescription = "Steps Icon",
                         tint = Color.White,
                         modifier = Modifier.size(18.dp)

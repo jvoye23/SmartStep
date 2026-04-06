@@ -52,6 +52,7 @@
     <string name="error_server_error">Oops, something went wrong. Please try again.</string>
     <string name="error_serialization">Oops, couldn\'t parse data</string>
     <string name="error_unknown">Oops, an unknown error occurred.</string>
+    <string name="smart_step_counter">Smart Step Counter</string>
     <string name="error_email_exists">A user with that email already exists.</string>
     <string name="are_you_sure_you_want_to_reset">Are you sure you want to reset today's steps?</string>
 </resources>

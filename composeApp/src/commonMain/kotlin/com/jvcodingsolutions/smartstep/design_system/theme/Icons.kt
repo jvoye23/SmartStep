@@ -17,6 +17,7 @@ import smartstep.composeapp.generated.resources.refresh
 import smartstep.composeapp.generated.resources.running
 import smartstep.composeapp.generated.resources.selected_icon
 import smartstep.composeapp.generated.resources.sneakers
+import smartstep.composeapp.generated.resources.steps
 import smartstep.composeapp.generated.resources.time_clock
 import smartstep.composeapp.generated.resources.weight_diet
 import smartstep.composeapp.generated.resources.x
@@ -84,3 +85,7 @@ val Icon_WeightScale: ImageVector
 val Icon_Clock: ImageVector
     @Composable
     get() = vectorResource(Res.drawable.time_clock)
+
+val Icon_Steps: ImageVector
+    @Composable
+    get() = vectorResource(Res.drawable.steps)

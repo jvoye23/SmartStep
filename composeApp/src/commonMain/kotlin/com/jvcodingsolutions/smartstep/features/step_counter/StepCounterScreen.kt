@@ -242,6 +242,7 @@ private fun MobilePortraitLayout(
             togglePlayPause = { onAction(StepCounterAction.TogglePlayPause) },
             distance = state.distanceTraveled,
             kcal = state.caloriesBurned,
+            duration = state.activityDurationRaw,
             isPaused = state.isStepTrackerPaused,
         )
         Spacer(modifier = Modifier.height(8.dp))

@@ -8,6 +8,12 @@ import com.jvcodingsolutions.smartstep.core.domain.model.Tracks
 import com.jvcodingsolutions.smartstep.core.domain.repository.TrackRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.update
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.plus
@@ -18,6 +24,35 @@ import kotlin.time.Duration.Companion.minutes
 class TrackRepositoryImpl(
     private val trackDao: TrackDao
 ) : TrackRepository {
+
+    private val _unwrittenSteps = MutableStateFlow(0)
+    private val _unwrittenDuration = MutableStateFlow(Duration.ZERO)
+    
+    override fun addStepDelta(delta: Int) {
+        _unwrittenSteps.update { it + delta }
+    }
+
+    override fun addDurationDelta(delta: Duration) {
+        _unwrittenDuration.update { it + delta }
+    }
+
+    override fun getLiveStepsFlow(profileId: String, date: LocalDate): Flow<Int> {
+        val epochDay = date.toEpochDays()
+        return trackDao.getTrackByDateFlow(profileId, epochDay)
+            .distinctUntilChanged { old, new -> old?.currentSteps == new?.currentSteps }
+            .combine(_unwrittenSteps) { entity, unwritten ->
+                (entity?.currentSteps ?: 0) + unwritten
+            }
+    }
+
+    override fun getLiveDurationFlow(profileId: String, date: LocalDate): Flow<Duration> {
+        val epochDay = date.toEpochDays()
+        return trackDao.getTrackByDateFlow(profileId, epochDay)
+            .distinctUntilChanged { old, new -> old?.minutesMillis == new?.minutesMillis }
+            .combine(_unwrittenDuration) { entity, unwritten ->
+                (entity?.minutesMillis?.milliseconds ?: Duration.ZERO) + unwritten
+            }
+    }
 
     override suspend fun insertTrack(track: Tracks) {
         trackDao.insertTrack(track.toEntity())
@@ -63,6 +98,12 @@ class TrackRepositoryImpl(
                 )
             )
         }
+        // When steps are saved to DB, we must subtract them from the unwritten counter
+        // However, in this app's architecture, we usually pass the 'newTotal' to this method.
+        // To keep it simple and synchronized: the ViewModel or Service that calls this
+        // should be the one to manage _unwrittenSteps. 
+        // Or we can reset it here if we assume this is the authoritative 'write'
+        _unwrittenSteps.update { 0 }
     }
 
     override suspend fun saveActivityDuration(profileId: String, date: LocalDate, duration: Duration) {
@@ -72,8 +113,19 @@ class TrackRepositoryImpl(
         if (existingTrack != null) {
             trackDao.insertTrack(existingTrack.copy(minutesMillis = duration.inWholeMilliseconds))
         } else {
-            return
+            trackDao.insertTrack(
+                TrackEntity(
+                    profileId = profileId,
+                    dailyStepGoal = 6000,
+                    currentSteps = 0,
+                    sensorBaseline = 0,
+                    calories = null,
+                    minutesMillis = duration.inWholeMilliseconds,
+                    currentDate = epochDay
+                )
+            )
         }
+        _unwrittenDuration.update { Duration.ZERO }
     }
 
     override suspend fun saveSensorBaseline(profileId: String, date: LocalDate, baseline: Int) {

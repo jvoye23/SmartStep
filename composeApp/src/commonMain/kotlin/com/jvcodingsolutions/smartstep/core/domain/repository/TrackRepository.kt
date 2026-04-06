@@ -24,4 +24,10 @@ interface TrackRepository {
         startDate: LocalDate,
         endDate: LocalDate
     ): Flow<List<Tracks>>
+
+    // New: Unified live track data flow to keep App and Service in perfect sync
+    fun getLiveStepsFlow(profileId: String, date: LocalDate): Flow<Int>
+    fun getLiveDurationFlow(profileId: String, date: LocalDate): Flow<Duration>
+    fun addStepDelta(delta: Int)
+    fun addDurationDelta(delta: Duration)
 }

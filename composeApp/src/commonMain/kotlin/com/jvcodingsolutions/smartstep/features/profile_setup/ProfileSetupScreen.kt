@@ -125,7 +125,7 @@ fun ProfileSetupScreen(
         Scaffold(
             topBar = {
                 CenterAlignedTopAppBar(
-                    modifier = Modifier.statusBarsPadding(),
+                    modifier = Modifier,
                     title = {
                         Text(
                             text = stringResource(Res.string.my_profile),

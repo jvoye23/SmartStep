@@ -38,10 +38,10 @@ class MainViewModel(
                     val today = kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
                     viewModelScope.launch {
                         combine(
-                            trackRepository.getCurrentStepsFlow(profile.id, today),
+                            trackRepository.getLiveStepsFlow(profile.id, today),
                             trackRepository.getCurrentStepGoalFlow(profile.id, today)
                         ) { steps, goal ->
-                            val currentSteps = steps ?: 0
+                            val currentSteps = steps
                             val currentGoal = goal ?: 6000
                             val calories = calculateCalories(currentSteps, profile)
                             

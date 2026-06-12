@@ -1,4 +1,4 @@
-package com.jvcodingsolutions.smartstep.features.step_counter.domain
+package com.jvcodingsolutions.smartstep.core.domain.track
 
 import kotlinx.coroutines.flow.Flow
 

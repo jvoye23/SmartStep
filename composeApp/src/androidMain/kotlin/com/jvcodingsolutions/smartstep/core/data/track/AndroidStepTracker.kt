@@ -8,7 +8,7 @@ import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import androidx.core.content.ContextCompat
-import com.jvcodingsolutions.smartstep.features.step_counter.domain.StepTracker
+import com.jvcodingsolutions.smartstep.core.domain.track.StepTracker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow

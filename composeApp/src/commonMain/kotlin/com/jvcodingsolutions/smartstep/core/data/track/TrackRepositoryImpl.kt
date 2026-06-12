@@ -4,54 +4,100 @@ import com.jvcodingsolutions.smartstep.core.database.dao.TrackDao
 import com.jvcodingsolutions.smartstep.core.database.entity.TrackEntity
 import com.jvcodingsolutions.smartstep.core.database.mapper.toDomainModel
 import com.jvcodingsolutions.smartstep.core.database.mapper.toEntity
+import com.jvcodingsolutions.smartstep.core.domain.ProfileStorage
 import com.jvcodingsolutions.smartstep.core.domain.model.Tracks
 import com.jvcodingsolutions.smartstep.core.domain.repository.TrackRepository
+import com.jvcodingsolutions.smartstep.core.domain.track.StepTracker
+import com.jvcodingsolutions.smartstep.core.presentation.util.calculateActiveTimeDelta
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.Duration.Companion.minutes
 
 class TrackRepositoryImpl(
-    private val trackDao: TrackDao
+    private val trackDao: TrackDao,
+    private val profileStorage: ProfileStorage,
+    private val stepTracker: StepTracker,
+    private val repositoryScope: CoroutineScope
 ) : TrackRepository {
 
     private val _unwrittenSteps = MutableStateFlow(0)
     private val _unwrittenDuration = MutableStateFlow(Duration.ZERO)
     
+    private var lastStepDetectionTime: Long? = null
+
+    init {
+        repositoryScope.launch {
+            stepTracker.stepDeltas.collect { delta ->
+                val currentTime = kotlin.time.Clock.System.now().toEpochMilliseconds()
+                val timeSinceLastStep = lastStepDetectionTime?.let {
+                    (currentTime - it).milliseconds
+                }
+                lastStepDetectionTime = currentTime
+                val activeTimeDelta = calculateActiveTimeDelta(timeSinceLastStep)
+
+                addStepDelta(delta)
+                if (activeTimeDelta > Duration.ZERO) {
+                    addDurationDelta(activeTimeDelta)
+                }
+
+                // Auto-save logic
+                if (_unwrittenSteps.value >= 10) {
+                    savePendingData()
+                }
+            }
+        }
+    }
+
+    private suspend fun savePendingData() {
+        val profile = profileStorage.get() ?: return
+        val today = kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
+        
+        val existingTrack = trackDao.getTrackByDate(profile.id, today.toEpochDays())
+        val currentTotalSteps = (existingTrack?.currentSteps ?: 0) + _unwrittenSteps.value
+        val currentTotalDuration = (existingTrack?.minutesMillis?.milliseconds ?: Duration.ZERO) + _unwrittenDuration.value
+
+        saveCurrentSteps(profile.id, today, currentTotalSteps)
+        saveActivityDuration(profile.id, today, currentTotalDuration)
+    }
+
     override fun addStepDelta(delta: Int) {
+        if (delta == 0) return
         _unwrittenSteps.update { it + delta }
     }
 
     override fun addDurationDelta(delta: Duration) {
+        if (delta <= Duration.ZERO) return
         _unwrittenDuration.update { it + delta }
     }
 
     override fun getLiveStepsFlow(profileId: String, date: LocalDate): Flow<Int> {
         val epochDay = date.toEpochDays()
         return trackDao.getTrackByDateFlow(profileId, epochDay)
-            .distinctUntilChanged { old, new -> old?.currentSteps == new?.currentSteps }
             .combine(_unwrittenSteps) { entity, unwritten ->
                 (entity?.currentSteps ?: 0) + unwritten
             }
+            .distinctUntilChanged()
     }
 
     override fun getLiveDurationFlow(profileId: String, date: LocalDate): Flow<Duration> {
         val epochDay = date.toEpochDays()
         return trackDao.getTrackByDateFlow(profileId, epochDay)
-            .distinctUntilChanged { old, new -> old?.minutesMillis == new?.minutesMillis }
             .combine(_unwrittenDuration) { entity, unwritten ->
                 (entity?.minutesMillis?.milliseconds ?: Duration.ZERO) + unwritten
             }
+            .distinctUntilChanged()
     }
 
     override suspend fun insertTrack(track: Tracks) {
@@ -89,7 +135,7 @@ class TrackRepositoryImpl(
             trackDao.insertTrack(
                 TrackEntity(
                     profileId = profileId,
-                    dailyStepGoal = 6000, // Default or fetch from settings
+                    dailyStepGoal = 6000, 
                     currentSteps = currentSteps,
                     sensorBaseline = 0,
                     calories = null,
@@ -98,11 +144,6 @@ class TrackRepositoryImpl(
                 )
             )
         }
-        // When steps are saved to DB, we must subtract them from the unwritten counter
-        // However, in this app's architecture, we usually pass the 'newTotal' to this method.
-        // To keep it simple and synchronized: the ViewModel or Service that calls this
-        // should be the one to manage _unwrittenSteps. 
-        // Or we can reset it here if we assume this is the authoritative 'write'
         _unwrittenSteps.update { 0 }
     }
 
@@ -188,7 +229,7 @@ class TrackRepositoryImpl(
     ): Duration? {
         val epochDay = date.toEpochDays()
         val existingTrack = trackDao.getTrackByDate(profileId, epochDay)
-        return existingTrack?.minutesMillis?.minutes
+        return existingTrack?.minutesMillis?.milliseconds
     }
 
     override fun getCurrentStepsFlow(profileId: String, date: LocalDate): Flow<Int?> {
@@ -203,8 +244,8 @@ class TrackRepositoryImpl(
 
     override fun getTracksForWeek(
         profileId: String,
-        startOfWeek: LocalDate, // Assume this is a Monday
-        endOfWeek: LocalDate   // Assume this is a Sunday
+        startOfWeek: LocalDate, 
+        endOfWeek: LocalDate   
     ): Flow<List<Tracks>> {
         return trackDao.getTracksForPeriod(
             profileId = profileId,
@@ -212,15 +253,11 @@ class TrackRepositoryImpl(
             endEpochDay = endOfWeek.toEpochDays()
         ).map { entities ->
             val trackMap = entities.associateBy { it.currentDate }
-            
-            // Map into a full week list from Monday to Sunday
             val weekTracks = mutableListOf<Tracks>()
             var currentDay = startOfWeek
-            
             for (i in 0..6) {
                 val epochDay = currentDay.toEpochDays()
                 val entity = trackMap[epochDay]
-                
                 if (entity != null) {
                     weekTracks.add(entity.toDomainModel())
                 } else {
@@ -249,7 +286,6 @@ class TrackRepositoryImpl(
     ): Flow<List<Tracks>> {
         return trackDao.getTracksForDateRangeFlow(profileId, startDate.toEpochDays(), endDate.toEpochDays())
             .map { entities ->
-                // Assuming you have an extension function to map DB entity to Domain model
                 entities.map { it.toDomainModel() }
             }
     }

@@ -76,7 +76,7 @@ fun SmartStepNavigation(
     val deviceConfiguration = DeviceConfiguration.fromWindowSizeClass(windowSizeClass)
 
     val topAppBarBackgroundColor = when(deviceConfiguration){
-        DeviceConfiguration.MOBILE_PORTRAIT -> MaterialTheme.colorScheme.backgroundWhite
+        DeviceConfiguration.MOBILE_PORTRAIT -> MaterialTheme.colorScheme.backgroundMain
         else -> Color.Transparent
     }
 
@@ -148,7 +148,7 @@ fun SmartStepNavigation(
                     MaterialTheme.colorScheme.backgroundMain
                 }
             },
-            modifier = modifier.statusBarsPadding(),
+            modifier = modifier,
             topBar = {
                 CenterAlignedTopAppBar(
                     navigationIcon = {

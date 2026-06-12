@@ -1,0 +1,154 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 2,
+    "identityHash": "91f2c83fc37139025943f7423f59a6b6",
+    "entities": [
+      {
+        "tableName": "profile",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `gender` TEXT NOT NULL, `weightInKg` INTEGER, `weightInLbs` INTEGER, `heightInCm` INTEGER, `feet` INTEGER, `inches` INTEGER, `isMetricSystem` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "gender",
+            "columnName": "gender",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weightInKg",
+            "columnName": "weightInKg",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "weightInLbs",
+            "columnName": "weightInLbs",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "heightInCm",
+            "columnName": "heightInCm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "feet",
+            "columnName": "feet",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "inches",
+            "columnName": "inches",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "isMetricSystem",
+            "columnName": "isMetricSystem",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        }
+      },
+      {
+        "tableName": "tracks",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `profileId` TEXT NOT NULL, `dailyStepGoal` INTEGER NOT NULL, `currentSteps` INTEGER NOT NULL, `calories` INTEGER, `minutesMillis` INTEGER, `currentDate` INTEGER NOT NULL, FOREIGN KEY(`profileId`) REFERENCES `profile`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profileId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "dailyStepGoal",
+            "columnName": "dailyStepGoal",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "currentSteps",
+            "columnName": "currentSteps",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "calories",
+            "columnName": "calories",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "minutesMillis",
+            "columnName": "minutesMillis",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "currentDate",
+            "columnName": "currentDate",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_tracks_profileId",
+            "unique": false,
+            "columnNames": [
+              "profileId"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_tracks_profileId` ON `${TABLE_NAME}` (`profileId`)"
+          },
+          {
+            "name": "index_tracks_profileId_currentDate",
+            "unique": true,
+            "columnNames": [
+              "profileId",
+              "currentDate"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_tracks_profileId_currentDate` ON `${TABLE_NAME}` (`profileId`, `currentDate`)"
+          }
+        ],
+        "foreignKeys": [
+          {
+            "table": "profile",
+            "onDelete": "CASCADE",
+            "onUpdate": "NO ACTION",
+            "columns": [
+              "profileId"
+            ],
+            "referencedColumns": [
+              "id"
+            ]
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '91f2c83fc37139025943f7423f59a6b6')"
+    ]
+  }
+}

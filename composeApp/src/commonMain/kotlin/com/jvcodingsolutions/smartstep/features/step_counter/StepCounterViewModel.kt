@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jvcodingsolutions.smartstep.core.domain.ProfileStorage
 import com.jvcodingsolutions.smartstep.core.domain.repository.TrackRepository
+import com.jvcodingsolutions.smartstep.core.domain.track.StepTracker
 import com.jvcodingsolutions.smartstep.core.presentation.util.*
-import com.jvcodingsolutions.smartstep.features.step_counter.domain.StepTracker
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -40,7 +40,6 @@ class StepCounterViewModel(
     private val _state = MutableStateFlow(StepCounterState())
 
     private var hasLoadedInitialData = false
-    private var numberOfStepsNotWrittenToDb = 0
     private var lastStepDetectionTime: Long? = null
 
     val state = _state
@@ -127,32 +126,6 @@ class StepCounterViewModel(
                     }
                 }
 
-                // Collect step deltas and update unwritten steps in repository
-                launch {
-                    stepTracker.stepDeltas.collect { delta ->
-                        val currentTime = Clock.System.now().toEpochMilliseconds()
-                        val timeSinceLastStep = lastStepDetectionTime?.let {
-                            (currentTime - it).milliseconds
-                        }
-                        lastStepDetectionTime = currentTime
-
-                        val activeTimeDelta = calculateActiveTimeDelta(timeSinceLastStep)
-
-                        // Centralize delta tracking in repository
-                        trackRepository.addStepDelta(delta)
-                        if (activeTimeDelta > Duration.ZERO) {
-                            trackRepository.addDurationDelta(activeTimeDelta)
-                        }
-
-                        // Periodic DB save logic
-                        numberOfStepsNotWrittenToDb += delta
-                        if (numberOfStepsNotWrittenToDb >= savingStepsToDbInterval) {
-                            trackRepository.saveCurrentSteps(profileId, today, _state.value.currentSteps)
-                            trackRepository.saveActivityDuration(profileId, today, _state.value.activityDurationRaw)
-                            numberOfStepsNotWrittenToDb = 0
-                        }
-                    }
-                }
                 launch {
                     val weeklyDbFlow = trackRepository.getWeeklyTracksFlow(
                         profileId = profileId,
@@ -242,7 +215,6 @@ class StepCounterViewModel(
                     newBaseline = currentSensorValue
                 )
             }
-            numberOfStepsNotWrittenToDb = 0
             _state.update { it.copy(
                 isResetStepsConfirmationDialogVisible = false,
                 activityDurationRaw = Duration.ZERO,
@@ -265,15 +237,7 @@ class StepCounterViewModel(
 
     private fun confirmEditSteps(date: LocalDate, steps: Int) {
         viewModelScope.launch {
-            val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
             trackRepository.saveCurrentSteps(state.value.profileId, date, steps)
-            
-            if (date == today) {
-                numberOfStepsNotWrittenToDb = 0
-                // The live steps flow will pick up the change from DB, 
-                // but we can update immediately for better UX if needed.
-                // However, the collector in loadInitialData is already watching this.
-            }
             
             _state.update { it.copy(
                 isEditStepsDialogVisible = false

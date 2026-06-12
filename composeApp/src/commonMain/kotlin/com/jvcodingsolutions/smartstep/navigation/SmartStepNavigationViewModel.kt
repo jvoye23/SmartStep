@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jvcodingsolutions.smartstep.core.domain.ProfileStorage
 import com.jvcodingsolutions.smartstep.core.domain.repository.TrackRepository
-import com.jvcodingsolutions.smartstep.features.step_counter.domain.StepTracker
+import com.jvcodingsolutions.smartstep.core.domain.track.StepTracker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first

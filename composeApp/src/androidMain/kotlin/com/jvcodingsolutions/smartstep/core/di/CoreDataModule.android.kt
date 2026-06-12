@@ -2,10 +2,9 @@ package com.jvcodingsolutions.smartstep.core.di
 
 import com.jvcodingsolutions.smartstep.core.data.track.AndroidStepTracker
 import com.jvcodingsolutions.smartstep.core.database.DatabaseFactory
-import com.jvcodingsolutions.smartstep.features.step_counter.domain.StepTracker
+import com.jvcodingsolutions.smartstep.core.domain.track.StepTracker
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
-import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
 

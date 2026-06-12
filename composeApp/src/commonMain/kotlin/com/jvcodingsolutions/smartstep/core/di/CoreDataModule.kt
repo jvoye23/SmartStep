@@ -10,6 +10,7 @@ import com.jvcodingsolutions.smartstep.core.domain.repository.TrackRepository
 import kotlinx.serialization.json.Json
 import org.koin.core.module.Module
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -22,7 +23,14 @@ val coreDataModule = module {
     single { get<SmartStepDatabase>().trackDao }
 
     singleOf(::RoomLocalProfileDataSource) bind ProfileStorage::class
-    singleOf(::TrackRepositoryImpl) bind TrackRepository::class
+    single {
+        TrackRepositoryImpl(
+            trackDao = get(),
+            profileStorage = get(),
+            stepTracker = get(),
+            repositoryScope = get(named("AppScope"))
+        )
+    } bind TrackRepository::class
 
     single {
         Json {

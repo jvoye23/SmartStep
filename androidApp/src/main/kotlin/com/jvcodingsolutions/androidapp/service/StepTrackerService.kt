@@ -16,6 +16,9 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.koin.android.ext.android.inject
 
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.collect
+
 class StepTrackerService : Service() {
 
     private val trackRepository: TrackRepository by inject()
@@ -30,16 +33,12 @@ class StepTrackerService : Service() {
         notificationHelper = NotificationHelper(this)
     }
 
-    private var numberOfStepsNotWrittenToDb = 0
-
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d("StepTrackerService", "onStartCommand")
         val steps = intent?.getIntExtra("steps", 0) ?: 0
         val goal = intent?.getIntExtra("goal", 0) ?: 0
         val calories = intent?.getIntExtra("calories", 0) ?: 0
         
-        numberOfStepsNotWrittenToDb = 0 // Reset when starting or re-starting with new intent data
-
         val notification = notificationHelper.buildNotification(steps, goal, calories)
         
         try {
@@ -71,30 +70,19 @@ class StepTrackerService : Service() {
                 val profile = profileStorage.get()
                 if (profile != null) {
                     val today = kotlin.time.Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date
-                    Log.d("StepTrackerService", "Observing steps for $today")
+                    Log.d("StepTrackerService", "Observing live steps for $today")
 
-                    val stepTracker: com.jvcodingsolutions.smartstep.features.step_counter.domain.StepTracker by inject()
-                    
-                    launch {
-                        stepTracker.stepDeltas.collect { delta ->
-                            numberOfStepsNotWrittenToDb += delta
+                    trackRepository.getLiveStepsFlow(profile.id, today)
+                        .distinctUntilChanged()
+                        .collect { currentSteps: Int ->
+                            val goal = trackRepository.getCurrentStepGoal(profile.id, today) ?: 6000
+                            val calories = calculateCalories(currentSteps, profile)
+                            
+                            Log.d("StepTrackerService", "Notification update: $currentSteps / $goal")
+                            val notification = notificationHelper.buildNotification(currentSteps, goal, calories)
+                            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
+                            notificationManager.notify(NotificationHelper.NOTIFICATION_ID, notification)
                         }
-                    }
-                    
-                    combine(
-                        trackRepository.getCurrentStepsFlow(profile.id, today),
-                        trackRepository.getCurrentStepGoalFlow(profile.id, today)
-                    ) { steps, goal ->
-                        val currentSteps = (steps ?: 0) + numberOfStepsNotWrittenToDb
-                        val currentGoal = goal ?: 6000
-                        val calories = calculateCalories(currentSteps, profile)
-                        Triple(currentSteps, currentGoal, calories)
-                    }.collect { (steps, goal, calories) ->
-                        Log.d("StepTrackerService", "Steps updated (DB + Local): $steps / $goal | Calories: $calories")
-                        val notification = notificationHelper.buildNotification(steps, goal, calories)
-                        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as android.app.NotificationManager
-                        notificationManager.notify(NotificationHelper.NOTIFICATION_ID, notification)
-                    }
                 } else {
                     Log.w("StepTrackerService", "No profile found, cannot observe steps")
                 }

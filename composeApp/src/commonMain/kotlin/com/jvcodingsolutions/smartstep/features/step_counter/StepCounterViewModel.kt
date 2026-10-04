@@ -88,10 +88,10 @@ class StepCounterViewModel(
                         .distinctUntilChanged()
                         .collect { currentTotalSteps ->
                             // Refresh the AI insight exactly when the daily goal is crossed
-                            val goal = state.value.dailyGoalSteps
+                            val goal = _state.value.dailyGoalSteps
                             val previous = previousSteps
                             if (goal > 0 && previous != null && previous < goal && currentTotalSteps >= goal) {
-                                refreshInsight()
+                                refreshInsight(steps = currentTotalSteps, goal = goal)
                             }
                             previousSteps = currentTotalSteps
                             val calculatedDistance = if (state.value.isProfileMetricSystem) {
@@ -143,7 +143,7 @@ class StepCounterViewModel(
                             val lastGoalSeen = insightSessionHolder.lastGoalSeen
                             insightSessionHolder.lastGoalSeen = stepGoal
                             if (lastGoalSeen != null && lastGoalSeen != stepGoal) {
-                                refreshInsight()
+                                refreshInsight(goal = stepGoal)
                             }
                         }
                     }
@@ -153,9 +153,11 @@ class StepCounterViewModel(
                 launch {
                     val cachedInsight = insightSessionHolder.cachedInsight
                     if (cachedInsight == null) {
-                        // Wait for the first real step emission so the prompt context is accurate
-                        trackRepository.getLiveStepsFlow(profileId, today).first()
-                        refreshInsight()
+                        // Build the first prompt from the real step count and goal instead of the
+                        // state, which the other collectors may not have populated yet
+                        val steps = trackRepository.getLiveStepsFlow(profileId, today).first()
+                        val goal = trackRepository.getCurrentStepGoalFlow(profileId, today).first()
+                        refreshInsight(steps = steps, goal = goal)
                     } else {
                         _state.update { it.copy(aiInsight = cachedInsight) }
                     }
@@ -233,7 +235,11 @@ class StepCounterViewModel(
         }
     }
 
-    private fun refreshInsight() {
+    /**
+     * [steps] and [goal] override the values from the state when the caller already knows
+     * fresher ones than the state collectors have applied.
+     */
+    private fun refreshInsight(steps: Int? = null, goal: Int? = null) {
         viewModelScope.launch {
             val isOnline = connectivityObserver.isConnected.first()
             if (!isOnline) {
@@ -246,12 +252,12 @@ class StepCounterViewModel(
             // of whether the API call itself later succeeds
             _state.update { it.copy(isInsightLoading = true, isInsightOffline = false, isInsightError = false) }
 
-            val currentState = state.value
+            val currentState = _state.value
             val hour = Clock.System.now()
                 .toLocalDateTime(TimeZone.currentSystemDefault()).hour
             val context = ActivityContext.create(
-                currentSteps = currentState.currentSteps,
-                dailyStepGoal = currentState.dailyGoalSteps,
+                currentSteps = steps ?: currentState.currentSteps,
+                dailyStepGoal = goal ?: currentState.dailyGoalSteps,
                 hourOfDay = hour
             )
 

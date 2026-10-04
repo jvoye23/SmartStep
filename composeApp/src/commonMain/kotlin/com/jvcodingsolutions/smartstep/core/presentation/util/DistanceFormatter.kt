@@ -19,8 +19,20 @@ fun calculateFormattedDistance(
     heightCm: Int,
     system: MeasurementSystem
 ): String {
+    return "${calculateDistance(steps, heightCm, system)}"
+}
+
+/**
+ * Numeric variant of [calculateFormattedDistance], rounded to one decimal place.
+ * Used where distances need to be summed (e.g. weekly report) before display.
+ */
+fun calculateDistance(
+    steps: Int,
+    heightCm: Int,
+    system: MeasurementSystem
+): Double {
     if (steps <= 0) {
-        return "0.0"
+        return 0.0
     }
 
     // 1. Step length approximation
@@ -36,7 +48,12 @@ fun calculateFormattedDistance(
     }
 
     // 4. KMP-Safe Rounding to 1 decimal place (e.g., 1.254 -> 12.54 -> 13.0 -> 1.3)
-    val roundedDistance = round(convertedDistance * 10.0) / 10.0
+    return round(convertedDistance * 10.0) / 10.0
+}
 
-    return "$roundedDistance"
+/**
+ * Formats an already-computed distance value to one decimal place.
+ */
+fun formatDistanceValue(distance: Double): String {
+    return "${round(distance * 10.0) / 10.0}"
 }

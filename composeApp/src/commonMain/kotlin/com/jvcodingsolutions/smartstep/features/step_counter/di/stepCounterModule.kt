@@ -12,7 +12,10 @@ val stepCounterModule = module {
             trackRepository = get(),
             profileStorage = get(),
             stepTracker = get(),
-            applicationScope = get(named("AppScope"))
+            applicationScope = get(named("AppScope")),
+            aiCoachRepository = get(),
+            connectivityObserver = get(),
+            insightSessionHolder = get()
         )
     }
     //viewModelOf(::SmartStepNavigationViewModel)

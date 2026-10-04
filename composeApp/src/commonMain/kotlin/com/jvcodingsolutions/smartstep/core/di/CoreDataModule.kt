@@ -1,6 +1,7 @@
 package com.jvcodingsolutions.smartstep.core.di
 
 import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import com.jvcodingsolutions.smartstep.core.data.networking.HttpClientFactory
 import com.jvcodingsolutions.smartstep.core.data.profile.RoomLocalProfileDataSource
 import com.jvcodingsolutions.smartstep.core.data.track.TrackRepositoryImpl
 import com.jvcodingsolutions.smartstep.core.database.DatabaseFactory
@@ -37,6 +38,7 @@ val coreDataModule = module {
             ignoreUnknownKeys = true
         }
     }
+    single { HttpClientFactory.create(engine = get(), json = get()) }
     single {
         get<DatabaseFactory>()
             .create()

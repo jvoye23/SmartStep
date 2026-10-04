@@ -30,4 +30,10 @@ sealed interface StepCounterAction {
 
     data object OnToggleResetStepsConfirmationDialog: StepCounterAction
     data object OnResetTodayStepsClick: StepCounterAction
+
+    data object OnAppResumed: StepCounterAction
+    data object OnAppBackgrounded: StepCounterAction
+    data object OnTryAgainInsightClick: StepCounterAction
+    data object OnAiMoreClick: StepCounterAction
+    data object OnStepCardClick: StepCounterAction
 }

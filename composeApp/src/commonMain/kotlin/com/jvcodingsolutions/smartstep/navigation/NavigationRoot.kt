@@ -13,7 +13,9 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.SavedStateConfiguration
 import com.jvcodingsolutions.smartstep.design_system.theme.backgroundMain
+import com.jvcodingsolutions.smartstep.features.ai_coach.presentation.AiCoachChatScreenRoot
 import com.jvcodingsolutions.smartstep.features.profile_setup.ProfileSetupScreenRoot
+import com.jvcodingsolutions.smartstep.features.report.ReportScreenRoot
 import kotlinx.serialization.modules.SerializersModule
 import kotlinx.serialization.modules.polymorphic
 
@@ -30,6 +32,9 @@ fun NavigationRoot(
                 polymorphic(NavKey::class) {
                     subclass(Route.ProfileOnboardingRoute::class, Route.ProfileOnboardingRoute.serializer())
                     subclass(Route.StepCounterRoute::class, Route.StepCounterRoute.serializer())
+                    subclass(Route.PersonalSettingsRoute::class, Route.PersonalSettingsRoute.serializer())
+                    subclass(Route.AiCoachRoute::class, Route.AiCoachRoute.serializer())
+                    subclass(Route.ReportRoute::class, Route.ReportRoute.serializer())
                 }
             }
         },
@@ -64,9 +69,29 @@ fun NavigationRoot(
                         .background(MaterialTheme.colorScheme.backgroundMain),
                     onNavigateToProfileSettings = {
                         rootBackStack.add(Route.PersonalSettingsRoute)
+                    },
+                    onNavigateToAiCoach = {
+                        rootBackStack.add(Route.AiCoachRoute)
+                    },
+                    onNavigateToReport = {
+                        rootBackStack.add(Route.ReportRoute)
                     }
                 )
 
+            }
+            entry<Route.AiCoachRoute> {
+                AiCoachChatScreenRoot(
+                    onNavigateBack = {
+                        rootBackStack.removeLastOrNull()
+                    }
+                )
+            }
+            entry<Route.ReportRoute> {
+                ReportScreenRoot(
+                    onNavigateBack = {
+                        rootBackStack.removeLastOrNull()
+                    }
+                )
             }
             entry<Route.PersonalSettingsRoute> {
                 ProfileSetupScreenRoot(

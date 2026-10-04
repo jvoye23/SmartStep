@@ -1,7 +1,9 @@
 package com.jvcodingsolutions.smartstep.di
 
 import com.jvcodingsolutions.smartstep.core.di.coreDataModule
+import com.jvcodingsolutions.smartstep.features.ai_coach.di.aiCoachModule
 import com.jvcodingsolutions.smartstep.features.profile_setup.di.profileSetupModule
+import com.jvcodingsolutions.smartstep.features.report.di.reportModule
 import com.jvcodingsolutions.smartstep.features.step_counter.di.stepCounterModule
 import org.koin.core.context.startKoin
 import org.koin.dsl.KoinAppDeclaration
@@ -13,7 +15,9 @@ fun initKoin(config: KoinAppDeclaration? = null) {
             appModule,
             profileSetupModule,
             stepCounterModule,
-            coreDataModule
+            coreDataModule,
+            aiCoachModule,
+            reportModule
         )
     }
 }

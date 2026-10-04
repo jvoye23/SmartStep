@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import org.jetbrains.compose.resources.vectorResource
 import smartstep.composeapp.generated.resources.Res
+import smartstep.composeapp.generated.resources.ai_artificial_intelligence
 import smartstep.composeapp.generated.resources.arrow_down
 import smartstep.composeapp.generated.resources.arrow_right
 import smartstep.composeapp.generated.resources.arrow_up
@@ -16,6 +17,7 @@ import smartstep.composeapp.generated.resources.power__turn_on
 import smartstep.composeapp.generated.resources.refresh
 import smartstep.composeapp.generated.resources.running
 import smartstep.composeapp.generated.resources.selected_icon
+import smartstep.composeapp.generated.resources.send_message_icon
 import smartstep.composeapp.generated.resources.sneakers
 import smartstep.composeapp.generated.resources.steps
 import smartstep.composeapp.generated.resources.time_clock
@@ -89,3 +91,11 @@ val Icon_Clock: ImageVector
 val Icon_Steps: ImageVector
     @Composable
     get() = vectorResource(Res.drawable.steps)
+
+val Icon_SendMessage: ImageVector
+    @Composable
+    get() = vectorResource(Res.drawable.send_message_icon)
+
+val Icon_AI: ImageVector
+    @Composable
+    get() = vectorResource(Res.drawable.ai_artificial_intelligence)

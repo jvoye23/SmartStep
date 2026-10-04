@@ -30,9 +30,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jvcodingsolutions.smartstep.core.presentation.util.DeviceConfiguration
 import com.jvcodingsolutions.smartstep.core.presentation.util.formattedDate
+import com.jvcodingsolutions.smartstep.design_system.components.AiInsightsCard
 import com.jvcodingsolutions.smartstep.design_system.components.DailyAverageCard
 import com.jvcodingsolutions.smartstep.design_system.components.DatePickerDialog
 import com.jvcodingsolutions.smartstep.design_system.components.EditStepsDialog
@@ -72,9 +75,18 @@ fun StepCounterScreenRoot(
     shouldOpenEditSteps: Boolean = false,
     onEditStepsOpened: () -> Unit = {},
     shouldOpenResetStepsDialog: Boolean = false,
-    onResetStepsOpened: () -> Unit = {}
+    onResetStepsOpened: () -> Unit = {},
+    onNavigateToAiCoach: () -> Unit = {},
+    onNavigateToReport: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    LifecycleEventEffect(Lifecycle.Event.ON_STOP) {
+        viewModel.onAction(StepCounterAction.OnAppBackgrounded)
+    }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.onAction(StepCounterAction.OnAppResumed)
+    }
 
     var permissionRequestCount by remember { mutableStateOf(0) }
     var showAllowAccessSheet by remember { mutableStateOf(false) }
@@ -164,6 +176,8 @@ fun StepCounterScreenRoot(
                 StepCounterAction.ToggleBackgroundAccessBottomSheet -> {
                     showBackgroundAccessSheet = !showBackgroundAccessSheet
                 }
+                StepCounterAction.OnAiMoreClick -> onNavigateToAiCoach()
+                StepCounterAction.OnStepCardClick -> onNavigateToReport()
                 else -> Unit
             }
             viewModel.onAction(action)
@@ -244,9 +258,18 @@ private fun MobilePortraitLayout(
             kcal = state.caloriesBurned,
             duration = state.activityDurationRaw,
             isPaused = state.isStepTrackerPaused,
+            onCardClick = { onAction(StepCounterAction.OnStepCardClick) },
         )
         Spacer(modifier = Modifier.height(8.dp))
         DailyAverageCard(state = state.dailyAverageState)
+        Spacer(modifier = Modifier.height(8.dp))
+        AiInsightsCard(
+            insight = state.aiInsight,
+            isLoading = state.isInsightLoading,
+            isOffline = state.isInsightOffline,
+            onMoreClick = { onAction(StepCounterAction.OnAiMoreClick) },
+            onTryAgainClick = { onAction(StepCounterAction.OnTryAgainInsightClick) }
+        )
     }
 
     if(!hasPermissions) {

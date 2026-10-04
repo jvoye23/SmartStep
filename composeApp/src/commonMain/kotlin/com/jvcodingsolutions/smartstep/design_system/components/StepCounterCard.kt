@@ -1,6 +1,7 @@
 package com.jvcodingsolutions.smartstep.design_system.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jvcodingsolutions.smartstep.core.presentation.util.DeviceConfiguration
 import com.jvcodingsolutions.smartstep.core.presentation.util.formatActivityDuration
+import com.jvcodingsolutions.smartstep.design_system.theme.Icon_ArrowRight
 import com.jvcodingsolutions.smartstep.design_system.theme.Icon_Clock
 import com.jvcodingsolutions.smartstep.design_system.theme.Icon_Pause
 import com.jvcodingsolutions.smartstep.design_system.theme.Icon_PenEdit
@@ -42,10 +44,14 @@ import com.jvcodingsolutions.smartstep.design_system.theme.Icon_Sneakers
 import com.jvcodingsolutions.smartstep.design_system.theme.Icon_WeightScale
 import com.jvcodingsolutions.smartstep.design_system.theme.SmartStepTheme
 import com.jvcodingsolutions.smartstep.design_system.theme.backgroundWhite
+import com.jvcodingsolutions.smartstep.design_system.theme.bodyLargeMedium
 import com.jvcodingsolutions.smartstep.design_system.theme.buttonPrimary
 import com.jvcodingsolutions.smartstep.design_system.theme.textWhite
 import com.jvcodingsolutions.smartstep.design_system.theme.titleAccent
 import com.jvcodingsolutions.smartstep.design_system.util.formattedSteps
+import org.jetbrains.compose.resources.stringResource
+import smartstep.composeapp.generated.resources.Res
+import smartstep.composeapp.generated.resources.report
 import kotlin.time.Duration
 
 @Composable
@@ -60,6 +66,7 @@ fun StepCounterCard(
     isPaused: Boolean = false,
     onEditClick: () -> Unit,
     togglePlayPause: () -> Unit,
+    onCardClick: () -> Unit = {},
 ) {
     val currentFormattedSteps = remember(currentSteps) {
         formattedSteps(currentSteps)
@@ -86,7 +93,11 @@ fun StepCounterCard(
         shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.buttonPrimary),
         elevation = CardDefaults.elevatedCardElevation(defaultElevation = 12.dp),
-        modifier = modifier.fillMaxWidth(fraction = cardWidthFraction)
+        // Any non-interactive area of the card opens the Weekly Activity Report;
+        // the inner IconButtons consume their own clicks and keep their behavior
+        modifier = modifier
+            .fillMaxWidth(fraction = cardWidthFraction)
+            .clickable { onCardClick() }
     ) {
         Column(
             modifier = Modifier.padding(16.dp)
@@ -147,12 +158,35 @@ fun StepCounterCard(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            Text(
-                text = currentFormattedSteps,
-                color = if(isPaused) MaterialTheme.colorScheme.textWhite.copy(alpha = 0.2f)
-                else MaterialTheme.colorScheme.textWhite,
-                style = MaterialTheme.typography.titleAccent
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Text(
+                    text = currentFormattedSteps,
+                    color = if(isPaused) MaterialTheme.colorScheme.textWhite.copy(alpha = 0.2f)
+                    else MaterialTheme.colorScheme.textWhite,
+                    style = MaterialTheme.typography.titleAccent
+                )
+                // Informational label only; tapping it falls through to the card click
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(Res.string.report),
+                        color = MaterialTheme.colorScheme.textWhite,
+                        style = MaterialTheme.typography.bodyLargeMedium
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icon_ArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.textWhite,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 

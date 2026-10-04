@@ -53,7 +53,9 @@ import smartstep.composeapp.generated.resources.smart_step
 fun SmartStepNavigation(
     modifier: Modifier = Modifier,
     viewModel: SmartStepNavigationViewModel = koinViewModel(),
-    onNavigateToProfileSettings: () -> Unit
+    onNavigateToProfileSettings: () -> Unit,
+    onNavigateToAiCoach: () -> Unit = {},
+    onNavigateToReport: () -> Unit = {}
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
 
@@ -202,7 +204,9 @@ fun SmartStepNavigation(
                                 shouldOpenEditSteps = shouldOpenEditSteps,
                                 onEditStepsOpened = { shouldOpenEditSteps = false },
                                 shouldOpenResetStepsDialog = shouldOpenResetStepsConfirmationDialog,
-                                onResetStepsOpened = { shouldOpenResetStepsConfirmationDialog = false }
+                                onResetStepsOpened = { shouldOpenResetStepsConfirmationDialog = false },
+                                onNavigateToAiCoach = onNavigateToAiCoach,
+                                onNavigateToReport = onNavigateToReport
                             )
                         }
                     }

@@ -2,10 +2,16 @@ package com.jvcodingsolutions.smartstep.features.step_counter
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jvcodingsolutions.multipizza.core.domain.util.DataError
+import com.jvcodingsolutions.multipizza.core.domain.util.Result
 import com.jvcodingsolutions.smartstep.core.domain.ProfileStorage
+import com.jvcodingsolutions.smartstep.core.domain.connectivity.ConnectivityObserver
 import com.jvcodingsolutions.smartstep.core.domain.repository.TrackRepository
 import com.jvcodingsolutions.smartstep.core.domain.track.StepTracker
 import com.jvcodingsolutions.smartstep.core.presentation.util.*
+import com.jvcodingsolutions.smartstep.features.ai_coach.domain.ActivityContext
+import com.jvcodingsolutions.smartstep.features.ai_coach.domain.AiCoachRepository
+import com.jvcodingsolutions.smartstep.features.ai_coach.domain.InsightSessionHolder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -33,7 +39,10 @@ class StepCounterViewModel(
     private val trackRepository: TrackRepository,
     private val profileStorage: ProfileStorage,
     private val stepTracker: StepTracker,
-    private val applicationScope: CoroutineScope
+    private val applicationScope: CoroutineScope,
+    private val aiCoachRepository: AiCoachRepository,
+    private val connectivityObserver: ConnectivityObserver,
+    private val insightSessionHolder: InsightSessionHolder
 ): ViewModel() {
 
 
@@ -74,9 +83,17 @@ class StepCounterViewModel(
 
                 // Load steps from database and unwritten steps reactively
                 launch {
+                    var previousSteps: Int? = null
                     trackRepository.getLiveStepsFlow(profileId, today)
                         .distinctUntilChanged()
                         .collect { currentTotalSteps ->
+                            // Refresh the AI insight exactly when the daily goal is crossed
+                            val goal = state.value.dailyGoalSteps
+                            val previous = previousSteps
+                            if (goal > 0 && previous != null && previous < goal && currentTotalSteps >= goal) {
+                                refreshInsight()
+                            }
+                            previousSteps = currentTotalSteps
                             val calculatedDistance = if (state.value.isProfileMetricSystem) {
                                 calculateFormattedDistance(
                                     steps = currentTotalSteps,
@@ -122,7 +139,25 @@ class StepCounterViewModel(
                     trackRepository.getCurrentStepGoalFlow(profileId, today).collect { stepGoal ->
                         if (stepGoal != null) {
                             _state.update { it.copy(dailyGoalSteps = stepGoal) }
+                            // Refresh the AI insight when the user changes the daily goal
+                            val lastGoalSeen = insightSessionHolder.lastGoalSeen
+                            insightSessionHolder.lastGoalSeen = stepGoal
+                            if (lastGoalSeen != null && lastGoalSeen != stepGoal) {
+                                refreshInsight()
+                            }
                         }
+                    }
+                }
+
+                // AI insight: first launch of the session fetches, otherwise the cached one is reused
+                launch {
+                    val cachedInsight = insightSessionHolder.cachedInsight
+                    if (cachedInsight == null) {
+                        // Wait for the first real step emission so the prompt context is accurate
+                        trackRepository.getLiveStepsFlow(profileId, today).first()
+                        refreshInsight()
+                    } else {
+                        _state.update { it.copy(aiInsight = cachedInsight) }
                     }
                 }
 
@@ -181,7 +216,63 @@ class StepCounterViewModel(
             is StepCounterAction.OnConfirmEditDate -> { confirmEditDate(action.date) }
             StepCounterAction.OnToggleResetStepsConfirmationDialog -> { toggleResetStepsConfirmationDialog() }
             StepCounterAction.OnResetTodayStepsClick -> { resetTodaySteps() }
+            StepCounterAction.OnAppBackgrounded -> { insightSessionHolder.pendingForegroundRefresh = true }
+            StepCounterAction.OnAppResumed -> { onAppResumed() }
+            StepCounterAction.OnTryAgainInsightClick -> { refreshInsight() }
             else -> Unit
+        }
+    }
+
+    private fun onAppResumed() {
+        // Only refresh when the app actually returned from background (a real ON_STOP happened).
+        // Lifecycle observers re-attached after back-navigation replay ON_RESUME without ON_STOP,
+        // and those must reuse the cached insight.
+        if (insightSessionHolder.pendingForegroundRefresh) {
+            insightSessionHolder.pendingForegroundRefresh = false
+            refreshInsight()
+        }
+    }
+
+    private fun refreshInsight() {
+        viewModelScope.launch {
+            val isOnline = connectivityObserver.isConnected.first()
+            if (!isOnline) {
+                // No API request while offline; the block shows a static message + Try Again
+                _state.update { it.copy(isInsightOffline = true, isInsightLoading = false) }
+                return@launch
+            }
+
+            // Connectivity is available, so the block leaves the offline state regardless
+            // of whether the API call itself later succeeds
+            _state.update { it.copy(isInsightLoading = true, isInsightOffline = false) }
+
+            val currentState = state.value
+            val hour = Clock.System.now()
+                .toLocalDateTime(TimeZone.currentSystemDefault()).hour
+            val context = ActivityContext.create(
+                currentSteps = currentState.currentSteps,
+                dailyStepGoal = currentState.dailyGoalSteps,
+                hourOfDay = hour
+            )
+
+            when (val result = aiCoachRepository.generateInsight(context)) {
+                is Result.Success -> {
+                    insightSessionHolder.cachedInsight = result.data
+                    _state.update { it.copy(
+                        aiInsight = result.data,
+                        isInsightLoading = false,
+                        isInsightOffline = false
+                    ) }
+                }
+                is Result.Error -> {
+                    if (result.error == DataError.Network.NO_INTERNET) {
+                        _state.update { it.copy(isInsightOffline = true, isInsightLoading = false) }
+                    } else {
+                        // Degrade silently: keep showing the previous insight
+                        _state.update { it.copy(isInsightLoading = false) }
+                    }
+                }
+            }
         }
     }
 

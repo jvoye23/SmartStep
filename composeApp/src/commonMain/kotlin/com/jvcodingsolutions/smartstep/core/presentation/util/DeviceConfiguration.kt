@@ -14,6 +14,18 @@ fun currentDeviceConfiguration(): DeviceConfiguration {
     return DeviceConfiguration.fromWindowSizeClass(windowSizeClass)
 }
 
+/**
+ * True when the available width is at least 840dp — the milestone breakpoint above which
+ * the AI Coach and Report screens switch to their centered, width-constrained layouts.
+ * This is purely width-based (per the requirement) and so also covers a large phone in
+ * landscape, not only tablets.
+ */
+@Composable
+fun isWideScreenLayout(): Boolean {
+    val windowSizeClass = currentWindowAdaptiveInfo().windowSizeClass
+    return windowSizeClass.isWidthAtLeastBreakpoint(WIDTH_DP_EXPANDED_LOWER_BOUND)
+}
+
 enum class DeviceConfiguration {
     MOBILE_PORTRAIT,
     MOBILE_LANDSCAPE,

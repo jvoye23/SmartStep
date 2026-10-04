@@ -1,5 +1,7 @@
+import com.codingfeline.buildkonfig.compiler.FieldSpec
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -9,6 +11,22 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.buildkonfig)
+}
+
+val geminiApiKey: String = Properties().apply {
+    val localProperties = rootProject.file("local.properties")
+    if (localProperties.exists()) {
+        localProperties.inputStream().use { load(it) }
+    }
+}.getProperty("GEMINI_API_KEY") ?: ""
+
+buildkonfig {
+    packageName = "com.jvcodingsolutions.smartstep"
+    defaultConfigs {
+        // The key ends up embedded in the binary; acceptable for this milestone setup.
+        buildConfigField(FieldSpec.Type.STRING, "GEMINI_API_KEY", geminiApiKey)
+    }
 }
 
 kotlin {
@@ -17,6 +35,9 @@ kotlin {
         minSdk = 33
         namespace = "com.jvcodingsolutions.smartstep.composeapp"
         experimentalProperties["android.experimental.kmp.enableAndroidResources"] = true
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+        }
     }
     
     listOf(
@@ -78,6 +99,11 @@ kotlin {
             implementation(libs.jetbrains.lifecycle.viewmodel.nav3)
             implementation(libs.jetbrains.lifecycle.viewmodel)
             implementation(libs.kotlinx.serialization.json)
+
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.content.negotiation)
+            implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.serialization.kotlinx.json)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -26,7 +26,10 @@ data class StepCounterState(
     val caloriesBurned: Int = 0,
     val activityDuration: String = "0 min",
     val activityDurationRaw: Duration = Duration.ZERO,
-    val isStepTrackerPaused: Boolean = false
+    val isStepTrackerPaused: Boolean = false,
+    val aiInsight: String? = null,
+    val isInsightLoading: Boolean = false,
+    val isInsightOffline: Boolean = false
 )
 
 data class DailyAverageState(

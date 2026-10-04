@@ -22,4 +22,10 @@ sealed interface Route: NavKey {
     @Serializable
     data object PersonalSettingsRoute: Route, NavKey
 
+    @Serializable
+    data object AiCoachRoute: Route, NavKey
+
+    @Serializable
+    data object ReportRoute: Route, NavKey
+
 }

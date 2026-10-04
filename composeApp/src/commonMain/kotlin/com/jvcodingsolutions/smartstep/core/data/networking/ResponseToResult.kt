@@ -5,6 +5,8 @@ import com.jvcodingsolutions.multipizza.core.domain.util.Result
 import io.ktor.client.call.NoTransformationFoundException
 import io.ktor.client.call.body
 import io.ktor.client.statement.HttpResponse
+import kotlinx.coroutines.ensureActive
+import kotlin.coroutines.coroutineContext
 
 suspend inline fun <reified T> responseToResult(
     response: HttpResponse
@@ -14,6 +16,10 @@ suspend inline fun <reified T> responseToResult(
             try {
                 Result.Success(response.body<T>())
             } catch (e: NoTransformationFoundException) {
+                Result.Error(DataError.Network.SERIALIZATION)
+            } catch (e: Exception) {
+                // Decoding failures surface as JsonConvertException, not NoTransformationFoundException
+                coroutineContext.ensureActive()
                 Result.Error(DataError.Network.SERIALIZATION)
             }
         }

@@ -12,12 +12,14 @@ data class GeminiRequest(
 @Serializable
 data class GeminiContent(
     val role: String? = null,
-    val parts: List<GeminiPart>
+    // Gemini omits parts when a candidate is cut off (e.g. MAX_TOKENS or SAFETY)
+    val parts: List<GeminiPart> = emptyList()
 )
 
 @Serializable
 data class GeminiPart(
-    val text: String
+    // Non-text parts (e.g. thought signatures) come without text
+    val text: String? = null
 )
 
 @Serializable
@@ -48,7 +50,6 @@ fun GeminiResponse.firstText(): String? = candidates
     .firstOrNull()
     ?.content
     ?.parts
-    ?.firstOrNull()
-    ?.text
+    ?.firstNotNullOfOrNull { it.text }
     ?.trim()
     ?.takeIf { it.isNotEmpty() }

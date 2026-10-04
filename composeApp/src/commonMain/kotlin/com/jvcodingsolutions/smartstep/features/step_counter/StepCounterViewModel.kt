@@ -244,7 +244,7 @@ class StepCounterViewModel(
 
             // Connectivity is available, so the block leaves the offline state regardless
             // of whether the API call itself later succeeds
-            _state.update { it.copy(isInsightLoading = true, isInsightOffline = false) }
+            _state.update { it.copy(isInsightLoading = true, isInsightOffline = false, isInsightError = false) }
 
             val currentState = state.value
             val hour = Clock.System.now()
@@ -261,15 +261,20 @@ class StepCounterViewModel(
                     _state.update { it.copy(
                         aiInsight = result.data,
                         isInsightLoading = false,
-                        isInsightOffline = false
+                        isInsightOffline = false,
+                        isInsightError = false
                     ) }
                 }
                 is Result.Error -> {
                     if (result.error == DataError.Network.NO_INTERNET) {
                         _state.update { it.copy(isInsightOffline = true, isInsightLoading = false) }
                     } else {
-                        // Degrade silently: keep showing the previous insight
-                        _state.update { it.copy(isInsightLoading = false) }
+                        // Degrade silently when a previous insight exists; otherwise show an
+                        // error with Try Again instead of an empty card
+                        _state.update { it.copy(
+                            isInsightLoading = false,
+                            isInsightError = it.aiInsight == null
+                        ) }
                     }
                 }
             }

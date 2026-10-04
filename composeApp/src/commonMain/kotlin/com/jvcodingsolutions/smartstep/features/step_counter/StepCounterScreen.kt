@@ -267,6 +267,7 @@ private fun MobilePortraitLayout(
             insight = state.aiInsight,
             isLoading = state.isInsightLoading,
             isOffline = state.isInsightOffline,
+            isError = state.isInsightError,
             onMoreClick = { onAction(StepCounterAction.OnAiMoreClick) },
             onTryAgainClick = { onAction(StepCounterAction.OnTryAgainInsightClick) }
         )

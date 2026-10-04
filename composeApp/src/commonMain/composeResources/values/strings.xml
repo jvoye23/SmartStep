@@ -58,6 +58,7 @@
     <string name="more">More</string>
     <string name="try_again">Try again</string>
     <string name="ai_insights_offline">🛜 Connect to the internet to get AI insights.</string>
+    <string name="ai_insights_error">Couldn\'t load your insight right now.</string>
     <string name="ai_coach">AI Coach</string>
     <string name="quick_suggestions">Quick suggestions</string>
     <string name="suggestion_recommend_workout">Recommend workout</string>

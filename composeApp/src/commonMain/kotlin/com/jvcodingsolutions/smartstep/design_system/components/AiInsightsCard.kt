@@ -37,6 +37,7 @@ import com.jvcodingsolutions.smartstep.design_system.theme.buttonSecondary
 import com.jvcodingsolutions.smartstep.design_system.theme.textPrimary
 import org.jetbrains.compose.resources.stringResource
 import smartstep.composeapp.generated.resources.Res
+import smartstep.composeapp.generated.resources.ai_insights_error
 import smartstep.composeapp.generated.resources.ai_insights_offline
 import smartstep.composeapp.generated.resources.more
 import smartstep.composeapp.generated.resources.try_again
@@ -47,6 +48,7 @@ fun AiInsightsCard(
     insight: String?,
     isLoading: Boolean,
     isOffline: Boolean,
+    isError: Boolean = false,
     onMoreClick: () -> Unit,
     onTryAgainClick: () -> Unit
 ) {
@@ -91,7 +93,7 @@ fun AiInsightsCard(
                     )
                 }
                 Spacer(modifier = Modifier.weight(1f))
-                if (isOffline) {
+                if (isOffline || isError) {
                     Row(
                         modifier = Modifier.clickable { onTryAgainClick() },
                         verticalAlignment = Alignment.CenterVertically
@@ -136,6 +138,13 @@ fun AiInsightsCard(
                 isOffline -> {
                     Text(
                         text = stringResource(Res.string.ai_insights_offline),
+                        style = MaterialTheme.typography.bodyLargeRegular,
+                        color = MaterialTheme.colorScheme.textPrimary
+                    )
+                }
+                isError -> {
+                    Text(
+                        text = stringResource(Res.string.ai_insights_error),
                         style = MaterialTheme.typography.bodyLargeRegular,
                         color = MaterialTheme.colorScheme.textPrimary
                     )
@@ -197,6 +206,21 @@ private fun AiInsightsCardLoadingPreview() {
             insight = null,
             isLoading = true,
             isOffline = false,
+            onMoreClick = {},
+            onTryAgainClick = {}
+        )
+    }
+}
+
+@Preview
+@Composable
+private fun AiInsightsCardErrorPreview() {
+    SmartStepTheme {
+        AiInsightsCard(
+            insight = null,
+            isLoading = false,
+            isOffline = false,
+            isError = true,
             onMoreClick = {},
             onTryAgainClick = {}
         )

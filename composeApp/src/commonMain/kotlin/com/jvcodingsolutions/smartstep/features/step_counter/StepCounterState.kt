@@ -29,7 +29,9 @@ data class StepCounterState(
     val isStepTrackerPaused: Boolean = false,
     val aiInsight: String? = null,
     val isInsightLoading: Boolean = false,
-    val isInsightOffline: Boolean = false
+    val isInsightOffline: Boolean = false,
+    // The request failed while online and there is no previous insight to fall back to
+    val isInsightError: Boolean = false
 )
 
 data class DailyAverageState(

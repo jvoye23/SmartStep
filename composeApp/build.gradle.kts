@@ -25,6 +25,8 @@ buildkonfig {
     packageName = "com.jvcodingsolutions.smartstep"
     defaultConfigs {
         // The key ends up embedded in the binary; acceptable for this milestone setup.
+        // Before any public release: restrict the key in Google Cloud Console (API restriction
+        // to the Generative Language API) or move the Gemini call behind a backend proxy.
         buildConfigField(FieldSpec.Type.STRING, "GEMINI_API_KEY", geminiApiKey)
     }
 }

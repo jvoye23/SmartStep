@@ -9,6 +9,7 @@ import io.ktor.client.plugins.defaultRequest
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logging
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import kotlinx.serialization.json.Json
@@ -31,6 +32,11 @@ object HttpClientFactory {
                     }
                 }
                 level = LogLevel.INFO
+                // Never write credentials to the log, even if the level is raised to HEADERS/ALL
+                sanitizeHeader { header ->
+                    header.equals("x-goog-api-key", ignoreCase = true) ||
+                        header.equals(HttpHeaders.Authorization, ignoreCase = true)
+                }
             }
             defaultRequest {
                 contentType(ContentType.Application.Json)

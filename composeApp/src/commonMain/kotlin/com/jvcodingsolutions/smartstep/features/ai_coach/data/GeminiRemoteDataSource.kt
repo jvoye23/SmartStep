@@ -17,6 +17,10 @@ class GeminiRemoteDataSource(
 ) {
 
     suspend fun generateContent(request: GeminiRequest): Result<GeminiResponse, DataError.Network> {
+        // Without a configured key every call would be rejected; don't send (and retry) it
+        if (BuildKonfig.GEMINI_API_KEY.isBlank()) {
+            return Result.Error(DataError.Network.UNAUTHORIZED)
+        }
         // The free tier occasionally returns transient 404/503/429 blips under load; a couple
         // of short retries smooth those over so they don't surface as a user-facing error.
         var lastError: Result.Error<DataError.Network>? = null
